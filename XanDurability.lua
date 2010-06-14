@@ -40,6 +40,9 @@ function f:PLAYER_LOGIN()
 	
 	SLASH_XANDURABILITY1 = "/xdu";
 	SlashCmdList["XANDURABILITY"] = XanDurability_SlashCommand;
+	
+	local ver = GetAddOnMetadata("XanDurability","Version") or '1.0'
+	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded", "XanDurability", ver or "1.0"))
 end
 
 function XanDurability_SlashCommand(cmd)
