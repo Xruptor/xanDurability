@@ -177,7 +177,7 @@ function f:GetDurabilityInfo()
 	for bag = 0, 4 do
 		for slot = 1, GetContainerNumSlots(bag) do
 			local hasCooldown, repairCost = tmpTip:SetBagItem(bag, slot)
-			local Minimum, Maximum = GetContainerItemDurability(slot)
+			local Minimum, Maximum = GetContainerItemDurability(bag, slot)
 
 			if repairCost and repairCost > 0 then
 				bagCost = bagCost + repairCost
