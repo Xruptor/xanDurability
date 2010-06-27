@@ -208,8 +208,8 @@ function f:SaveLayout(frame)
 		XanDUR_DB[frame] = {
 			["point"] = "CENTER",
 			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
+			["PosX"] = 0,
+			["PosY"] = 0,
 		}
 		opt = XanDUR_DB[frame];
 	end
@@ -232,8 +232,8 @@ function f:RestoreLayout(frame)
 		XanDUR_DB[frame] = {
 			["point"] = "CENTER",
 			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
+			["PosX"] = 0,
+			["PosY"] = 0,
 		}
 		opt = XanDUR_DB[frame];
 	end
@@ -242,11 +242,11 @@ function f:RestoreLayout(frame)
 	local y = opt.PosY;
 	local s = f:GetEffectiveScale();
 
-	    if not x or not y then
+	if (not x or not y) or (x==0 and y==0) then
 		f:ClearAllPoints();
 		f:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 		return 
-	    end
+	end
 
 	--calculate the scale
 	x,y = x/s,y/s;
