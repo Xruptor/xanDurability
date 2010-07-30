@@ -136,10 +136,14 @@ function f:CreateDURFrame()
 		GameTooltip:SetPoint(self:GetTipAnchor(self))
 		GameTooltip:ClearLines()
 
-		local cP = floor(pEquipDura.min / pEquipDura.max * 100)
-		local bP = floor(pBagDura.min / pBagDura.max * 100)
-		local tP = floor( (pEquipDura.min + pBagDura.min) / (pEquipDura.max + pBagDura.max) * 100)
+		local cP = (pEquipDura.max > 0 and floor(pEquipDura.min / pEquipDura.max * 100)) or 100
+		local bP = (pBagDura.max > 0 and floor(pBagDura.min / pBagDura.max * 100)) or 100
+		local tP = ((pEquipDura.max + pBagDura.max) > 0 and floor( (pEquipDura.min + pBagDura.min) / (pEquipDura.max + pBagDura.max) * 100)) or 100
 		
+		if cP > 100 then cP = 100 end
+		if bP > 100 then bP = 100 end
+		if tP > 100 then tP = 100 end
+
 		GameTooltip:AddLine("XanDurability")
 		GameTooltip:AddDoubleLine("|cFFFFFFFFEquipped|r  ("..self:DurColor(cP)..cP.."%|r".."):", self:GetMoneyText(equipCost), nil,nil,nil, 1,1,1)
 		GameTooltip:AddDoubleLine("|cFFFFFFFFBags|r  ("..self:DurColor(bP)..bP.."%|r".."):", self:GetMoneyText(bagCost), nil,nil,nil, 1,1,1)
@@ -188,6 +192,7 @@ function f:GetDurabilityInfo()
 			end
 		end
 	end
+	if bagCost < 0 then bagCost = 0 end
 	
 	totalCost = equipCost + bagCost
 end
@@ -296,7 +301,11 @@ function f:GetMoneyText(money)
 	local gold = floor(money / (COPPER_PER_SILVER * SILVER_PER_GOLD));
 	local silver = floor((money - (gold * COPPER_PER_SILVER * SILVER_PER_GOLD)) / COPPER_PER_SILVER);
 	local copper = mod(money, COPPER_PER_SILVER);
-
+	
+	if gold < 0 then gold = 0 end
+	if silver < 0 then silver = 0 end
+	if copper < 0 then copper = 0 end
+	
 	if money >= 10000 then
 		return format("%d|cff%sg|r %d|cff%ss|r %d|cff%sc|r", gold, COLOR_GOLD, silver, COLOR_SILVER, copper, COLOR_COPPER)
 	elseif money >= 100 then
