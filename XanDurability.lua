@@ -5,7 +5,7 @@
 --This mod creates a very simple movable box with the current players durability.  The box can be moved :)
 --use /xdu to access the slash commands
 
-local f = CreateFrame("frame","XanDurability",UIParent)
+local f = CreateFrame("frame","xanDurability",UIParent)
 f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 --repair variables
@@ -30,7 +30,7 @@ function f:PLAYER_LOGIN()
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
 	
 	self:CreateDURFrame()
-	self:RestoreLayout("XanDurability")
+	self:RestoreLayout("xanDurability")
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
@@ -39,41 +39,41 @@ function f:PLAYER_LOGIN()
 	self.PLAYER_LOGIN = nil
 	
 	SLASH_XANDURABILITY1 = "/xdu";
-	SlashCmdList["XANDURABILITY"] = XanDurability_SlashCommand;
+	SlashCmdList["XANDURABILITY"] = xanDurability_SlashCommand;
 	
-	local ver = GetAddOnMetadata("XanDurability","Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded", "XanDurability", ver or "1.0"))
+	local ver = GetAddOnMetadata("xanDurability","Version") or '1.0'
+	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded", "xanDurability", ver or "1.0"))
 end
 
-function XanDurability_SlashCommand(cmd)
+function xanDurability_SlashCommand(cmd)
 
 	local a,b,c=strfind(cmd, "(%S+)"); --contiguous string of non-space characters
 	
 	if a then
 		if c and c:lower() == "bg" then
-			XanDurability:BackgroundToggle()
+			xanDurability:BackgroundToggle()
 			return true
 		elseif c and c:lower() == "reset" then
-			DEFAULT_CHAT_FRAME:AddMessage("XanDurability: Frame position has been reset!");
-			XanDurability:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
+			DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Frame position has been reset!");
+			xanDurability:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
 			return true
 		elseif c and c:lower() == "scale" then
 			if b then
 				local scalenum = strsub(cmd, b+2)
 				if scalenum and scalenum ~= "" and tonumber(scalenum) then
 					XanDUR_DB.scale = tonumber(scalenum)
-					XanDurability:SetScale(tonumber(scalenum))
-					DEFAULT_CHAT_FRAME:AddMessage("XanDurability: scale has been set to ["..tonumber(scalenum).."]")
+					xanDurability:SetScale(tonumber(scalenum))
+					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: scale has been set to ["..tonumber(scalenum).."]")
 					return true
 				end
 			end
 		end
 	end
 
-	DEFAULT_CHAT_FRAME:AddMessage("XanDurability");
+	DEFAULT_CHAT_FRAME:AddMessage("xanDurability");
 	DEFAULT_CHAT_FRAME:AddMessage("/xdu reset - resets the frame position");
 	DEFAULT_CHAT_FRAME:AddMessage("/xdu bg - toggles the background on/off");
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu scale # - Set the scale of the XanDurability frame")
+	DEFAULT_CHAT_FRAME:AddMessage("/xdu scale # - Set the scale of the xanDurability frame")
 end
 
 function f:CreateDURFrame()
@@ -144,7 +144,7 @@ function f:CreateDURFrame()
 		if bP > 100 then bP = 100 end
 		if tP > 100 then tP = 100 end
 
-		GameTooltip:AddLine("XanDurability")
+		GameTooltip:AddLine("xanDurability")
 		GameTooltip:AddDoubleLine("|cFFFFFFFFEquipped|r  ("..self:DurColor(cP)..cP.."%|r".."):", self:GetMoneyText(equipCost), nil,nil,nil, 1,1,1)
 		GameTooltip:AddDoubleLine("|cFFFFFFFFBags|r  ("..self:DurColor(bP)..bP.."%|r".."):", self:GetMoneyText(bagCost), nil,nil,nil, 1,1,1)
 		GameTooltip:AddLine(" ")
@@ -200,7 +200,7 @@ end
 function f:UpdatePercent()
 	--only show current equipped durability not total
 	local tPer = floor(pEquipDura.min / pEquipDura.max * 100)
-	getglobal("XanDurabilityText"):SetText(f:DurColor(tPer)..tPer.."%|r");
+	getglobal("xanDurabilityText"):SetText(f:DurColor(tPer)..tPer.."%|r");
 end
 
 function f:SaveLayout(frame)
@@ -268,13 +268,13 @@ function f:BackgroundToggle()
 	
 	if XanDUR_DB.bgShown == 0 then
 		XanDUR_DB.bgShown = 1;
-		DEFAULT_CHAT_FRAME:AddMessage("XanDurability: Background Shown");
+		DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Background Shown");
 	elseif XanDUR_DB.bgShown == 1 then
 		XanDUR_DB.bgShown = 0;
-		DEFAULT_CHAT_FRAME:AddMessage("XanDurability: Background Hidden");
+		DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Background Hidden");
 	else
 		XanDUR_DB.bgShown = 1
-		DEFAULT_CHAT_FRAME:AddMessage("XanDurability: Background Shown");
+		DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Background Shown");
 	end
 
 	--now change background
