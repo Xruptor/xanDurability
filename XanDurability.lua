@@ -28,6 +28,11 @@ function f:PLAYER_LOGIN()
 	if not XanDUR_DB then XanDUR_DB = {} end
 	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = 1 end
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
+	--check for old db
+	if XanDUR_DB["XanDurability"] then
+		XanDUR_DB["xanDurability"] = XanDUR_DB["XanDurability"]
+		XanDUR_DB["XanDurability"] = nil
+	end
 	
 	self:CreateDURFrame()
 	self:RestoreLayout("xanDurability")
