@@ -39,15 +39,15 @@ function f:PLAYER_LOGIN()
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
-
-	self:UnregisterEvent("PLAYER_LOGIN")
-	self.PLAYER_LOGIN = nil
 	
 	SLASH_XANDURABILITY1 = "/xdu";
 	SlashCmdList["XANDURABILITY"] = xanDurability_SlashCommand;
 	
 	local ver = GetAddOnMetadata("xanDurability","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded", "xanDurability", ver or "1.0"))
+
+	self:UnregisterEvent("PLAYER_LOGIN")
+	self.PLAYER_LOGIN = nil
 end
 
 function xanDurability_SlashCommand(cmd)
