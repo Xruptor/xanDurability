@@ -2,7 +2,7 @@
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Author: Xruptor
-## Version: 2.4
+## Version: 2.5
 ## SavedVariablesPerCharacter: XanDUR_DB
 
 xanDurability.lua
