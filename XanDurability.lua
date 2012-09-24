@@ -46,6 +46,9 @@ function f:PLAYER_LOGIN()
 	local ver = GetAddOnMetadata("xanDurability","Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded", "xanDurability", ver or "1.0"))
 
+	f:GetDurabilityInfo()
+	f:UpdatePercent()
+	
 	self:UnregisterEvent("PLAYER_LOGIN")
 	self.PLAYER_LOGIN = nil
 end
@@ -170,15 +173,17 @@ function f:GetDurabilityInfo()
 	equipCost = 0
 	for _, slotName in ipairs(Slots) do
 		local item = _G["Character" .. slotName]
-		local hasItem, _, repairCost = tmpTip:SetInventoryItem("player", item:GetID())
-		local Minimum, Maximum = GetInventoryItemDurability(item:GetID())
+		if item then
+			local hasItem, _, repairCost = tmpTip:SetInventoryItem("player", item:GetID())
+			local Minimum, Maximum = GetInventoryItemDurability(item:GetID())
 
-		if hasItem and repairCost and repairCost > 0 then
-			equipCost = equipCost + repairCost
-		end
-		if Minimum and Maximum then
-			pEquipDura.min = pEquipDura.min + Minimum
-			pEquipDura.max = pEquipDura.max + Maximum
+			if hasItem and repairCost and repairCost > 0 then
+				equipCost = equipCost + repairCost
+			end
+			if Minimum and Maximum then
+				pEquipDura.min = pEquipDura.min + Minimum
+				pEquipDura.max = pEquipDura.max + Maximum
+			end
 		end
 	end
 
