@@ -1,8 +1,8 @@
-## Interface: 50001
+## Interface: 50200
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Author: Xruptor
-## Version: 2.6
+## Version: 2.7
 ## SavedVariablesPerCharacter: XanDUR_DB
 
 xanDurability.lua
