@@ -5,10 +5,17 @@
 --This mod creates a very simple movable box with the current players durability.  The box can be moved :)
 --use /xdu to access the slash commands
 
-local f = CreateFrame("frame","xanDurability",UIParent)
-f:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
+local ADDON_NAME, addon = ...
+if not _G[ADDON_NAME] then
+	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent)
+end
+addon = _G[ADDON_NAME]
 
-local debugf = tekDebug and tekDebug:GetFrame("xanDurability")
+local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
+
+addon:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
+
+local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
 local function Debug(...)
     if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
 end
@@ -28,19 +35,14 @@ local Slots = { "HeadSlot", "ShoulderSlot", "ChestSlot", "WaistSlot", "WristSlot
 --      Enable      --
 ----------------------
 
-function f:PLAYER_LOGIN()
+function addon:PLAYER_LOGIN()
 
 	if not XanDUR_DB then XanDUR_DB = {} end
-	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = 1 end
+	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = true end
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
-	--check for old db
-	if XanDUR_DB["XanDurability"] then
-		XanDUR_DB["xanDurability"] = XanDUR_DB["XanDurability"]
-		XanDUR_DB["XanDurability"] = nil
-	end
-	
+
 	self:CreateDURFrame()
-	self:RestoreLayout("xanDurability")
+	self:RestoreLayout(ADDON_NAME)
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
@@ -48,11 +50,11 @@ function f:PLAYER_LOGIN()
 	SLASH_XANDURABILITY1 = "/xdu";
 	SlashCmdList["XANDURABILITY"] = xanDurability_SlashCommand;
 	
-	local ver = GetAddOnMetadata("xanDurability","Version") or '1.0'
-	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFFDF2B2B%s|r] Loaded", "xanDurability", ver or "1.0"))
+	local ver = GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
+	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xdu", ADDON_NAME, ver or "1.0"))
 
-	f:GetDurabilityInfo()
-	f:UpdatePercent()
+	addon:GetDurabilityInfo()
+	addon:UpdatePercent()
 	
 	self:UnregisterEvent("PLAYER_LOGIN")
 	self.PLAYER_LOGIN = nil
@@ -64,87 +66,86 @@ function xanDurability_SlashCommand(cmd)
 	
 	if a then
 		if c and c:lower() == "bg" then
-			xanDurability:BackgroundToggle()
+			addon.aboutPanel.btnBG.func(true)
 			return true
 		elseif c and c:lower() == "reset" then
-			DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Frame position has been reset!");
-			xanDurability:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
+			addon.aboutPanel.btnReset.func()
 			return true
 		elseif c and c:lower() == "scale" then
 			if b then
 				local scalenum = strsub(cmd, b+2)
-				if scalenum and scalenum ~= "" and tonumber(scalenum) then
-					XanDUR_DB.scale = tonumber(scalenum)
-					xanDurability:SetScale(tonumber(scalenum))
-					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: scale has been set to ["..tonumber(scalenum).."]")
-					return true
+				if scalenum and scalenum ~= "" and tonumber(scalenum) and tonumber(scalenum) > 0 and tonumber(scalenum) <= 200 then
+					addon.aboutPanel.sliderScale.func(tonumber(scalenum))
+				else
+					DEFAULT_CHAT_FRAME:AddMessage(L.SlashScaleSetInvalid)
 				end
+				return true
 			end
 		end
 	end
 
-	DEFAULT_CHAT_FRAME:AddMessage("xanDurability");
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu reset - resets the frame position");
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu bg - toggles the background on/off");
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu scale # - Set the scale of the xanDurability frame")
+	DEFAULT_CHAT_FRAME:AddMessage(ADDON_NAME, 64/255, 224/255, 208/255)
+	DEFAULT_CHAT_FRAME:AddMessage("/xdu "..L.SlashReset.." - "..L.SlashResetInfo);
+	DEFAULT_CHAT_FRAME:AddMessage("/xdu "..L.SlashBG.." - "..L.SlashBGInfo);
+	DEFAULT_CHAT_FRAME:AddMessage("/xdu "..L.SlashScale.." # - "..L.SlashScaleInfo)
 end
 
-function f:CreateDURFrame()
+function addon:CreateDURFrame()
 
-	f:SetWidth(61)
-	f:SetHeight(27)
-	f:SetMovable(true)
-	f:SetClampedToScreen(true)
+	addon:SetWidth(61)
+	addon:SetHeight(27)
+	addon:SetMovable(true)
+	addon:SetClampedToScreen(true)
 	
-	f:SetScale(XanDUR_DB.scale)
+	addon:SetScale(XanDUR_DB.scale)
 	
-	if XanDUR_DB.bgShown == 1 then
-		f:SetBackdrop( {
+	if XanDUR_DB.bgShown then
+		addon:SetBackdrop( {
 			bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground";
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border";
 			tile = true; tileSize = 32; edgeSize = 16;
 			insets = { left = 5; right = 5; top = 5; bottom = 5; };
 		} );
-		f:SetBackdropBorderColor(0.5, 0.5, 0.5);
-		f:SetBackdropColor(0.5, 0.5, 0.5, 0.6)
+		addon:SetBackdropBorderColor(0.5, 0.5, 0.5);
+		addon:SetBackdropColor(0.5, 0.5, 0.5, 0.6)
 	else
-		f:SetBackdrop(nil)
+		addon:SetBackdrop(nil)
 	end
 	
-	f:EnableMouse(true);
+	addon:EnableMouse(true);
 	
-	local t = f:CreateTexture("$parentIcon", "ARTWORK")
+	local t = addon:CreateTexture("$parentIcon", "ARTWORK")
 	t:SetTexture("Interface\\Icons\\Trade_Blacksmithing")
 	t:SetWidth(16)
 	t:SetHeight(16)
 	t:SetPoint("TOPLEFT",5,-6)
 
-	local g = f:CreateFontString("$parentText", "ARTWORK", "GameFontNormalSmall")
+	local g = addon:CreateFontString("$parentText", "ARTWORK", "GameFontNormalSmall")
 	g:SetJustifyH("LEFT")
 	g:SetPoint("CENTER",8,0)
 	g:SetText("")
 
-	f:SetScript("OnMouseDown",function()
+	addon:SetScript("OnMouseDown",function()
 		if (IsShiftKeyDown()) then
 			self.isMoving = true
 			self:StartMoving();
 	 	end
 	end)
-	f:SetScript("OnMouseUp",function()
+	addon:SetScript("OnMouseUp",function()
 		if( self.isMoving ) then
 
 			self.isMoving = nil
 			self:StopMovingOrSizing()
 
-			f:SaveLayout(self:GetName());
+			addon:SaveLayout(self:GetName());
 
 		end
 	end)
-	f:SetScript("OnLeave",function()
+	addon:SetScript("OnLeave",function()
 		GameTooltip:Hide()
 	end)
 
-	f:SetScript("OnEnter",function()
+	addon:SetScript("OnEnter",function()
 		GameTooltip:SetOwner(self, "ANCHOR_NONE")
 		GameTooltip:SetPoint(self:GetTipAnchor(self))
 		GameTooltip:ClearLines()
@@ -157,18 +158,20 @@ function f:CreateDURFrame()
 		if bP > 100 then bP = 100 end
 		if tP > 100 then tP = 100 end
 
-		GameTooltip:AddLine("xanDurability")
-		GameTooltip:AddDoubleLine("|cFFFFFFFFEquipped|r  ("..self:DurColor(cP)..cP.."%|r".."):", self:GetMoneyText(equipCost), nil,nil,nil, 1,1,1)
-		GameTooltip:AddDoubleLine("|cFFFFFFFFBags|r  ("..self:DurColor(bP)..bP.."%|r".."):", self:GetMoneyText(bagCost), nil,nil,nil, 1,1,1)
+		GameTooltip:AddLine(ADDON_NAME)
+		GameTooltip:AddLine(L.TooltipDragInfo, 64/255, 224/255, 208/255)
 		GameTooltip:AddLine(" ")
-		GameTooltip:AddDoubleLine("|cFFFFFFFFTotal|r  ("..self:DurColor(tP)..tP.."%|r".."):", self:GetMoneyText(totalCost), nil,nil,nil, 1,1,1)
+		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Equipped.."|r  ("..self:DurColor(cP)..cP.."%|r".."):", GetMoneyString(equipCost, true), nil,nil,nil, 1,1,1)
+		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Bags.."|r  ("..self:DurColor(bP)..bP.."%|r".."):", GetMoneyString(bagCost, true), nil,nil,nil, 1,1,1)
+		GameTooltip:AddLine(" ")
+		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Total.."|r  ("..self:DurColor(tP)..tP.."%|r".."):", GetMoneyString(totalCost, true), nil,nil,nil, 1,1,1)
 		GameTooltip:Show()
 	end)
 	
-	f:Show();
+	addon:Show();
 end
 
-function f:GetDurabilityInfo()
+function addon:GetDurabilityInfo()
 	
 	pEquipDura = { min=0, max=0};
 	pBagDura = { min=0, max=0};
@@ -212,13 +215,13 @@ function f:GetDurabilityInfo()
 	totalCost = equipCost + bagCost
 end
 
-function f:UpdatePercent()
+function addon:UpdatePercent()
 	--only show current equipped durability not total
 	local tPer = floor(pEquipDura.min / pEquipDura.max * 100)
-	getglobal("xanDurabilityText"):SetText(f:DurColor(tPer)..tPer.."%|r");
+	getglobal(ADDON_NAME.."Text"):SetText(addon:DurColor(tPer)..tPer.."%|r");
 end
 
-function f:SaveLayout(frame)
+function addon:SaveLayout(frame)
 	if type(frame) ~= "string" then return end
 	if not _G[frame] then return end
 	if not XanDUR_DB then XanDUR_DB = {} end
@@ -243,7 +246,7 @@ function f:SaveLayout(frame)
 	opt.yOfs = yOfs
 end
 
-function f:RestoreLayout(frame)
+function addon:RestoreLayout(frame)
 	if type(frame) ~= "string" then return end
 	if not _G[frame] then return end
 	if not XanDUR_DB then XanDUR_DB = {} end
@@ -264,60 +267,22 @@ function f:RestoreLayout(frame)
 	_G[frame]:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
 end
 
-function f:BackgroundToggle()
-	if not XanDUR_DB then XanDUR_DB = {} end
-	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = 1 end
-	
-	if XanDUR_DB.bgShown == 0 then
-		XanDUR_DB.bgShown = 1;
-		DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Background Shown");
-	elseif XanDUR_DB.bgShown == 1 then
-		XanDUR_DB.bgShown = 0;
-		DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Background Hidden");
-	else
-		XanDUR_DB.bgShown = 1
-		DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Background Shown");
-	end
-
-	--now change background
-	if XanDUR_DB.bgShown == 1 then
-		f:SetBackdrop( {
+function addon:BackgroundToggle()
+	if XanDUR_DB.bgShown then
+		addon:SetBackdrop( {
 			bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground";
 			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border";
 			tile = true; tileSize = 32; edgeSize = 16;
 			insets = { left = 5; right = 5; top = 5; bottom = 5; };
 		} );
-		f:SetBackdropBorderColor(0.5, 0.5, 0.5);
-		f:SetBackdropColor(0.5, 0.5, 0.5, 0.6)
+		addon:SetBackdropBorderColor(0.5, 0.5, 0.5);
+		addon:SetBackdropColor(0.5, 0.5, 0.5, 0.6)
 	else
-		f:SetBackdrop(nil)
-	end
-	
-end
-
-function f:GetMoneyText(money)
-	local COLOR_COPPER = "eda55f"
-	local COLOR_SILVER = "c7c7cf"
-	local COLOR_GOLD = "ffd700"
-
-	local gold = floor(money / (COPPER_PER_SILVER * SILVER_PER_GOLD));
-	local silver = floor((money - (gold * COPPER_PER_SILVER * SILVER_PER_GOLD)) / COPPER_PER_SILVER);
-	local copper = mod(money, COPPER_PER_SILVER);
-	
-	if gold < 0 then gold = 0 end
-	if silver < 0 then silver = 0 end
-	if copper < 0 then copper = 0 end
-	
-	if money >= 10000 then
-		return format("%d|cff%sg|r %d|cff%ss|r %d|cff%sc|r", gold, COLOR_GOLD, silver, COLOR_SILVER, copper, COLOR_COPPER)
-	elseif money >= 100 then
-		return format("%d|cff%ss|r %d|cff%sc|r", silver, COLOR_SILVER, copper, COLOR_COPPER)
-	else
-		return format("%d|cff%sc|r", copper, COLOR_COPPER)
+		addon:SetBackdrop(nil)
 	end
 end
 
-function f:DurColor(percent)
+function addon:DurColor(percent)
 
 	local tmpString = ""
 	
@@ -340,22 +305,22 @@ end
 --      Event Handlers      --
 ------------------------------
 
-function f:PLAYER_REGEN_ENABLED()
-	f:GetDurabilityInfo()
-	f:UpdatePercent()
+function addon:PLAYER_REGEN_ENABLED()
+	addon:GetDurabilityInfo()
+	addon:UpdatePercent()
 end
 
 
-function f:UPDATE_INVENTORY_DURABILITY()
-	f:GetDurabilityInfo()
-	f:UpdatePercent()
+function addon:UPDATE_INVENTORY_DURABILITY()
+	addon:GetDurabilityInfo()
+	addon:UpdatePercent()
 end
 
 ------------------------
 --      Tooltip!      --
 ------------------------
 
-function f:GetTipAnchor(frame)
+function addon:GetTipAnchor(frame)
 	local x,y = frame:GetCenter()
 	if not x or not y then return "TOPLEFT", "BOTTOMLEFT" end
 	local hhalf = (x > UIParent:GetWidth()*2/3) and "RIGHT" or (x < UIParent:GetWidth()/3) and "LEFT" or ""
@@ -363,4 +328,4 @@ function f:GetTipAnchor(frame)
 	return vhalf..hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP")..hhalf
 end
 
-if IsLoggedIn() then f:PLAYER_LOGIN() else f:RegisterEvent("PLAYER_LOGIN") end
+if IsLoggedIn() then addon:PLAYER_LOGIN() else addon:RegisterEvent("PLAYER_LOGIN") end

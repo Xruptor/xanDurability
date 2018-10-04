@@ -2,8 +2,16 @@
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Author: Xruptor
-## Version: 3.5
+## Version: 3.6
+## X-Curse-Project-ID: 28561
+## X-WoWI-ID: 16915
 ## OptionalDeps: tekDebug
 ## SavedVariablesPerCharacter: XanDUR_DB
 
+libs\LibStub\LibStub.lua
+libs\AceLocale-3.0\AceLocale-3.0.xml
+
+locale\enUS.lua
+
 xanDurability.lua
+config.lua
