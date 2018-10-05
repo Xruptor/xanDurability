@@ -2,7 +2,7 @@
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Author: Xruptor
-## Version: 3.6
+## Version: 3.7
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915
 ## OptionalDeps: tekDebug

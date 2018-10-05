@@ -65,13 +65,13 @@ function xanDurability_SlashCommand(cmd)
 	local a,b,c=strfind(cmd, "(%S+)"); --contiguous string of non-space characters
 	
 	if a then
-		if c and c:lower() == "bg" then
+		if c and c:lower() == L.SlashBG then
 			addon.aboutPanel.btnBG.func(true)
 			return true
-		elseif c and c:lower() == "reset" then
+		elseif c and c:lower() == L.SlashReset then
 			addon.aboutPanel.btnReset.func()
 			return true
-		elseif c and c:lower() == "scale" then
+		elseif c and c:lower() == L.SlashScale then
 			if b then
 				local scalenum = strsub(cmd, b+2)
 				if scalenum and scalenum ~= "" and tonumber(scalenum) and tonumber(scalenum) > 0 and tonumber(scalenum) <= 200 then
