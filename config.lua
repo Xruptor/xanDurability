@@ -205,16 +205,16 @@ function configEvent:PLAYER_LOGIN()
 	addon.aboutPanel.sliderScale = sliderScale
 	
 	local btnAutoRepair = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairInfo)
-	btnAutoRepair:SetScript("OnShow", function() btnAutoRepair:SetChecked(XanDUR_DB.autoRepair) end)
+	btnAutoRepair:SetScript("OnShow", function() btnAutoRepair:SetChecked(XanDUR_Opt.autoRepair) end)
 	btnAutoRepair.func = function(slashSwitch)
-		local value = XanDUR_DB.autoRepair
+		local value = XanDUR_Opt.autoRepair
 		if not slashSwitch then value = btnAutoRepair:GetChecked() end
 
 		if value then
-			XanDUR_DB.autoRepair = false
+			XanDUR_Opt.autoRepair = false
 			DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairOff)
 		else
-			XanDUR_DB.autoRepair = true
+			XanDUR_Opt.autoRepair = true
 			DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairOn)
 		end
 	end
@@ -225,16 +225,16 @@ function configEvent:PLAYER_LOGIN()
 	
 	if IsRetail then
 		local btnAutoRepairGuild = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairGuildInfo)
-		btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_DB.autoRepairUseGuild) end)
+		btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_Opt.autoRepairUseGuild) end)
 		btnAutoRepairGuild.func = function(slashSwitch)
-			local value = XanDUR_DB.autoRepairUseGuild
+			local value = XanDUR_Opt.autoRepairUseGuild
 			if not slashSwitch then value = btnAutoRepairGuild:GetChecked() end
 
 			if value then
-				XanDUR_DB.autoRepairUseGuild = false
+				XanDUR_Opt.autoRepairUseGuild = false
 				DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOff)
 			else
-				XanDUR_DB.autoRepairUseGuild = true
+				XanDUR_Opt.autoRepairUseGuild = true
 				DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOn)
 			end
 		end

@@ -40,10 +40,11 @@ local IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 function addon:PLAYER_LOGIN()
 
 	if not XanDUR_DB then XanDUR_DB = {} end
+	if not XanDUR_Opt then XanDUR_Opt = {} end
 	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = true end
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
-	if XanDUR_DB.autoRepair == nil then XanDUR_DB.autoRepair = true end
-	if XanDUR_DB.autoRepairUseGuild == nil then XanDUR_DB.autoRepairUseGuild = true end
+	if XanDUR_Opt.autoRepair == nil then XanDUR_Opt.autoRepair = true end
+	if XanDUR_Opt.autoRepairUseGuild == nil then XanDUR_Opt.autoRepairUseGuild = true end
 
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
@@ -300,12 +301,12 @@ end
 
 function addon:MERCHANT_SHOW()
 
-	if XanDUR_DB.autoRepair then
+	if XanDUR_Opt.autoRepair then
 		--do repairs
 		if CanMerchantRepair() then
 			local repairCost, canRepair = GetRepairAllCost()
 			if canRepair and repairCost > 0 then
-				if IsRetail and XanDUR_DB.autoRepairUseGuild and CanGuildBankRepair() then
+				if IsRetail and XanDUR_Opt.autoRepairUseGuild and CanGuildBankRepair() then
 					local amount = GetGuildBankWithdrawMoney()
 					local guildMoney = GetGuildBankMoney()
 					if amount == -1 then
