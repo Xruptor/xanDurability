@@ -9,6 +9,7 @@ local configEvent = addon.configEvent
 configEvent:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
 local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
+local IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 
 local lastObject
 local function addConfigEntry(objEntry, adjustX, adjustY)
@@ -222,24 +223,26 @@ function configEvent:PLAYER_LOGIN()
 	addConfigEntry(btnAutoRepair, 0, -40)
 	addon.aboutPanel.btnAutoRepair = btnAutoRepair
 	
-	local btnAutoRepairGuild = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairGuildInfo)
-	btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_DB.autoRepairUseGuild) end)
-	btnAutoRepairGuild.func = function(slashSwitch)
-		local value = XanDUR_DB.autoRepairUseGuild
-		if not slashSwitch then value = btnAutoRepairGuild:GetChecked() end
+	if IsRetail then
+		local btnAutoRepairGuild = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairGuildInfo)
+		btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_DB.autoRepairUseGuild) end)
+		btnAutoRepairGuild.func = function(slashSwitch)
+			local value = XanDUR_DB.autoRepairUseGuild
+			if not slashSwitch then value = btnAutoRepairGuild:GetChecked() end
 
-		if value then
-			XanDUR_DB.autoRepairUseGuild = false
-			DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOff)
-		else
-			XanDUR_DB.autoRepairUseGuild = true
-			DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOn)
+			if value then
+				XanDUR_DB.autoRepairUseGuild = false
+				DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOff)
+			else
+				XanDUR_DB.autoRepairUseGuild = true
+				DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOn)
+			end
 		end
+		btnAutoRepairGuild:SetScript("OnClick", btnAutoRepairGuild.func)
+		
+		addConfigEntry(btnAutoRepairGuild, 0, -20)
+		addon.aboutPanel.btnAutoRepairGuild = btnAutoRepairGuild
 	end
-	btnAutoRepairGuild:SetScript("OnClick", btnAutoRepairGuild.func)
-	
-	addConfigEntry(btnAutoRepairGuild, 0, -20)
-	addon.aboutPanel.btnAutoRepairGuild = btnAutoRepairGuild
 	
 	configEvent:UnregisterEvent("PLAYER_LOGIN")
 end

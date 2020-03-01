@@ -31,6 +31,8 @@ local pBagDura = { min=0, max=0};
 
 local Slots = { "HeadSlot", "ShoulderSlot", "ChestSlot", "WaistSlot", "WristSlot", "HandsSlot", "LegsSlot", "FeetSlot", "MainHandSlot", "SecondaryHandSlot", "RangedSlot" }
 
+local IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+
 ----------------------
 --      Enable      --
 ----------------------
@@ -303,7 +305,7 @@ function addon:MERCHANT_SHOW()
 		if CanMerchantRepair() then
 			local repairCost, canRepair = GetRepairAllCost()
 			if canRepair and repairCost > 0 then
-				if XanDUR_DB.autoRepairUseGuild and CanGuildBankRepair() then
+				if IsRetail and XanDUR_DB.autoRepairUseGuild and CanGuildBankRepair() then
 					local amount = GetGuildBankWithdrawMoney()
 					local guildMoney = GetGuildBankMoney()
 					if amount == -1 then
