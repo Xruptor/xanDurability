@@ -40,15 +40,21 @@ function addon:PLAYER_LOGIN()
 	if not XanDUR_DB then XanDUR_DB = {} end
 	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = true end
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
+	if XanDUR_DB.autoRepair == nil then XanDUR_DB.autoRepair = true end
+	if XanDUR_DB.autoRepairUseGuild == nil then XanDUR_DB.autoRepairUseGuild = true end
 
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
+	self:RegisterEvent("MERCHANT_SHOW")
 	
 	SLASH_XANDURABILITY1 = "/xdu";
-	SlashCmdList["XANDURABILITY"] = xanDurability_SlashCommand;
+	SlashCmdList["XANDURABILITY"] = function()
+		InterfaceOptionsFrame:Show() --has to be here to load the about frame onLoad
+		InterfaceOptionsFrame_OpenToCategory(addon.aboutPanel) --force the panel to show
+	end
 	
 	local ver = GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xdu", ADDON_NAME, ver or "1.0"))
@@ -58,36 +64,6 @@ function addon:PLAYER_LOGIN()
 	
 	self:UnregisterEvent("PLAYER_LOGIN")
 	self.PLAYER_LOGIN = nil
-end
-
-function xanDurability_SlashCommand(cmd)
-
-	local a,b,c=strfind(cmd, "(%S+)"); --contiguous string of non-space characters
-	
-	if a then
-		if c and c:lower() == L.SlashBG then
-			addon.aboutPanel.btnBG.func(true)
-			return true
-		elseif c and c:lower() == L.SlashReset then
-			addon.aboutPanel.btnReset.func()
-			return true
-		elseif c and c:lower() == L.SlashScale then
-			if b then
-				local scalenum = strsub(cmd, b+2)
-				if scalenum and scalenum ~= "" and tonumber(scalenum) and tonumber(scalenum) > 0 and tonumber(scalenum) <= 200 then
-					addon.aboutPanel.sliderScale.func(tonumber(scalenum))
-				else
-					DEFAULT_CHAT_FRAME:AddMessage(L.SlashScaleSetInvalid)
-				end
-				return true
-			end
-		end
-	end
-
-	DEFAULT_CHAT_FRAME:AddMessage(ADDON_NAME, 64/255, 224/255, 208/255)
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu "..L.SlashReset.." - "..L.SlashResetInfo);
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu "..L.SlashBG.." - "..L.SlashBGInfo);
-	DEFAULT_CHAT_FRAME:AddMessage("/xdu "..L.SlashScale.." # - "..L.SlashScaleInfo)
 end
 
 function addon:CreateDURFrame()
@@ -314,6 +290,46 @@ end
 function addon:UPDATE_INVENTORY_DURABILITY()
 	addon:GetDurabilityInfo()
 	addon:UpdatePercent()
+end
+
+------------------------
+--      Auto Repair!      --
+------------------------
+
+function addon:MERCHANT_SHOW()
+
+	if XanDUR_DB.autoRepair then
+		--do repairs
+		if CanMerchantRepair() then
+			local repairCost, canRepair = GetRepairAllCost()
+			if canRepair and repairCost > 0 then
+				if XanDUR_DB.autoRepairUseGuild and CanGuildBankRepair() then
+					local amount = GetGuildBankWithdrawMoney()
+					local guildMoney = GetGuildBankMoney()
+					if amount == -1 then
+						amount = guildMoney
+					else
+						amount = min(amount, guildMoney)
+					end
+					if amount > repairCost then
+						RepairAllItems(1)
+						DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Repaired from Guild. ["..GetCoinTextureString(repairCost).."]")
+						return
+					else
+						DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Insufficient guild funds to make repairs. ["..GetCoinTextureString(repairCost).."]")
+					end
+				elseif GetMoney() > repairCost then
+					RepairAllItems()
+					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Repaired all items. ["..GetCoinTextureString(repairCost).."]")
+					return
+				else
+					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Insufficient funds to make repairs. ["..GetCoinTextureString(repairCost).."]")
+				end
+			end
+		end
+		
+	end
+	
 end
 
 ------------------------

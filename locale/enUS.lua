@@ -18,6 +18,16 @@ L.SlashScaleSetInvalid = "xanDurability: scale invalid or number cannot be great
 L.SlashScaleInfo = "Set the scale of the xanDurability frame (0-200)"
 L.SlashScaleText = "xanDurability Frame Scale"
 
+L.SlashAutoRepair = "autorepair"
+L.SlashAutoRepairOn = "xanDurability: Auto repair at merchant is [|cFF99CC33ON|r]"
+L.SlashAutoRepairOff = "xanDurability: Auto repair at merchant is [|cFF99CC33OFF|r]"
+L.SlashAutoRepairInfo = "Enable auto repair when visiting a merchant."
+
+L.SlashAutoRepairGuild = "guildrepair"
+L.SlashAutoRepairGuildOn = "xanDurability: Auto repair using Guild is [|cFF99CC33ON|r]"
+L.SlashAutoRepairGuildOff = "xanDurability: Auto repair using Guild is [|cFF99CC33OFF|r]"
+L.SlashAutoRepairGuildInfo = "Allow auto repair to use guild funds |cFF99CC33(Auto Repair must be enabled)|r."
+
 L.TooltipDragInfo = "[Hold Shift and Drag to move window.]"
 
 L.Equipped = "Equipped"
