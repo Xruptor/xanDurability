@@ -7,7 +7,7 @@
 
 local ADDON_NAME, addon = ...
 if not _G[ADDON_NAME] then
-	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent)
+	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate")
 end
 addon = _G[ADDON_NAME]
 
@@ -44,7 +44,7 @@ function addon:PLAYER_LOGIN()
 	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = true end
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
 	if XanDUR_Opt.autoRepair == nil then XanDUR_Opt.autoRepair = true end
-	if XanDUR_Opt.autoRepairUseGuild == nil then XanDUR_Opt.autoRepairUseGuild = true end
+	if XanDUR_Opt.autoRepairUseGuild == nil then XanDUR_Opt.autoRepairUseGuild = false end
 
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
@@ -155,7 +155,7 @@ function addon:GetDurabilityInfo()
 	pEquipDura = { min=0, max=0};
 	pBagDura = { min=0, max=0};
 	
-	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT") end
+	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, BackdropTemplateMixin and "BackdropTemplate") end
 	
 	equipCost = 0
 	for _, slotName in ipairs(Slots) do
