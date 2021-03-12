@@ -1,13 +1,13 @@
 #@retail@
-## Interface: 90001
+## Interface: 90005
 #@end-retail@
 #@non-retail@
-# ## Interface: 11305
+# ## Interface: 11306
 #@end-non-retail@
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Author: Xruptor
-## Version: 4.3
+## Version: 4.4
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915
 ## OptionalDeps: tekDebug
