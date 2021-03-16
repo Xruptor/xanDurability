@@ -13,12 +13,32 @@ addon = _G[ADDON_NAME]
 
 local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
 
-addon:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
-
 local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
 local function Debug(...)
     if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
 end
+
+addon:RegisterEvent("ADDON_LOADED")
+addon:SetScript("OnEvent", function(self, event, ...)
+	if event == "ADDON_LOADED" or event == "PLAYER_LOGIN" then
+		if event == "ADDON_LOADED" then
+			local arg1 = ...
+			if arg1 and arg1 == ADDON_NAME then
+				self:UnregisterEvent("ADDON_LOADED")
+				self:RegisterEvent("PLAYER_LOGIN")
+			end
+			return
+		end
+		if IsLoggedIn() then
+			self:EnableAddon(event, ...)
+			self:UnregisterEvent("PLAYER_LOGIN")
+		end
+		return
+	end
+	if self[event] then
+		return self[event](self, event, ...)
+	end
+end)
 
 --repair variables
 local equipCost = 0;
@@ -37,7 +57,7 @@ local IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 --      Enable      --
 ----------------------
 
-function addon:PLAYER_LOGIN()
+function addon:EnableAddon()
 
 	if not XanDUR_DB then XanDUR_DB = {} end
 	if not XanDUR_Opt then XanDUR_Opt = {} end
@@ -59,14 +79,14 @@ function addon:PLAYER_LOGIN()
 		InterfaceOptionsFrame_OpenToCategory(addon.aboutPanel) --force the panel to show
 	end
 	
+	if addon.configFrame then addon.configFrame:EnableConfig() end
+	
 	local ver = GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xdu", ADDON_NAME, ver or "1.0"))
 
 	addon:GetDurabilityInfo()
 	addon:UpdatePercent()
 	
-	self:UnregisterEvent("PLAYER_LOGIN")
-	self.PLAYER_LOGIN = nil
 end
 
 function addon:CreateDURFrame()
@@ -346,5 +366,3 @@ function addon:GetTipAnchor(frame)
 	local vhalf = (y > UIParent:GetHeight()/2) and "TOP" or "BOTTOM"
 	return vhalf..hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP")..hhalf
 end
-
-if IsLoggedIn() then addon:PLAYER_LOGIN() else addon:RegisterEvent("PLAYER_LOGIN") end
