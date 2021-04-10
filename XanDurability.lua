@@ -336,17 +336,17 @@ function addon:MERCHANT_SHOW()
 					end
 					if amount > repairCost then
 						RepairAllItems(1)
-						DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Repaired from Guild. ["..GetCoinTextureString(repairCost).."]")
+						DEFAULT_CHAT_FRAME:AddMessage("xanDurability: "..L.RepairedFromGuild.." ["..GetCoinTextureString(repairCost).."]")
 						return
 					else
-						DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Insufficient guild funds to make repairs. ["..GetCoinTextureString(repairCost).."]")
+						DEFAULT_CHAT_FRAME:AddMessage("xanDurability: "..L.NoGuildFunds.." ["..GetCoinTextureString(repairCost).."]")
 					end
 				elseif GetMoney() > repairCost then
 					RepairAllItems()
-					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Repaired all items. ["..GetCoinTextureString(repairCost).."]")
+					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: "..L.RepairedAll.." ["..GetCoinTextureString(repairCost).."]")
 					return
 				else
-					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: Insufficient funds to make repairs. ["..GetCoinTextureString(repairCost).."]")
+					DEFAULT_CHAT_FRAME:AddMessage("xanDurability: "..L.NoFunds.." ["..GetCoinTextureString(repairCost).."]")
 				end
 			end
 		end

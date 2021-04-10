@@ -28,6 +28,11 @@ L.SlashAutoRepairGuildOn = "xanDurability: Auto repair using Guild is [|cFF99CC3
 L.SlashAutoRepairGuildOff = "xanDurability: Auto repair using Guild is [|cFF99CC33OFF|r]"
 L.SlashAutoRepairGuildInfo = "Allow auto repair to use guild funds |cFF99CC33(Auto Repair must be enabled)|r."
 
+L.RepairedFromGuild = "Repaired from Guild."
+L.NoGuildFunds = "Insufficient guild funds to make repairs."
+L.RepairedAll = "Repaired all items."
+L.NoFunds = "Insufficient funds to make repairs."
+
 L.TooltipDragInfo = "[Hold Shift and Drag to move window.]"
 
 L.Equipped = "Equipped"
