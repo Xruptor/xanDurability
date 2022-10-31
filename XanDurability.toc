@@ -14,6 +14,7 @@
 
 libs\LibStub\LibStub.lua
 libs\AceLocale-3.0\AceLocale-3.0.xml
+libs\LibQTip-1.0\LibQTip-1.0.lua
 
 locale\enUS.lua
 

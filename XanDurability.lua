@@ -12,6 +12,7 @@ end
 addon = _G[ADDON_NAME]
 
 local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
+local LibQTip = LibStub('LibQTip-1.0')
 
 local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
 local function Debug(...)
@@ -61,9 +62,6 @@ local totalCost = 0;
 local pEquipDura = { min=0, max=0};
 local pBagDura = { min=0, max=0};
 
-local Slots = { "HeadSlot", "ShoulderSlot", "ChestSlot", "WaistSlot", "WristSlot", "HandsSlot", "LegsSlot", "FeetSlot", "MainHandSlot", "SecondaryHandSlot", "RangedSlot" }
-
-
 ----------------------
 --      Enable      --
 ----------------------
@@ -76,7 +74,8 @@ function addon:EnableAddon()
 	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
 	if XanDUR_Opt.autoRepair == nil then XanDUR_Opt.autoRepair = true end
 	if XanDUR_Opt.autoRepairUseGuild == nil then XanDUR_Opt.autoRepairUseGuild = false end
-
+	if XanDUR_Opt.ShowMoreDetails == nil then XanDUR_Opt.ShowMoreDetails = true end
+	
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
 
@@ -86,7 +85,9 @@ function addon:EnableAddon()
 	
 	SLASH_XANDURABILITY1 = "/xdu";
 	SlashCmdList["XANDURABILITY"] = function()
-		InterfaceOptionsFrame:Show() --has to be here to load the about frame onLoad
+		if not addon.IsRetail then
+			InterfaceOptionsFrame:Show() --has to be here to load the about frame onLoad
+		end
 		InterfaceOptionsFrame_OpenToCategory(addon.aboutPanel) --force the panel to show
 	end
 	
@@ -155,7 +156,32 @@ function addon:CreateDURFrame()
 		GameTooltip:Hide()
 	end)
 
+
 	addon:SetScript("OnEnter",function()
+		if XanDUR_Opt.ShowMoreDetails then
+			if not GameTooltip.qTipDur then
+				GameTooltip.qTipDur = LibQTip:Acquire(GameTooltip:GetName(), 4, "LEFT", "CENTER", "LEFT", "RIGHT")
+				GameTooltip.qTipDur:Clear()
+				if GameTooltip:GetCenter() then --this will throw a LibQTip error if it can't find the center coords
+					GameTooltip.qTipDur:SmartAnchorTo(GameTooltip)
+				else
+					GameTooltip.qTipDur:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT")
+				end
+				GameTooltip.qTipDur.OnRelease = function() GameTooltip.qTipDur = nil end
+			else
+				--clear any item data already in the tooltip
+				if GameTooltip:GetCenter() then --this will throw a LibQTip error if it can't find the center coords
+					GameTooltip.qTipDur:SmartAnchorTo(GameTooltip)
+				else
+					GameTooltip.qTipDur:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT")
+				end
+				GameTooltip.qTipDur:Clear()
+				GameTooltip.qTipDur:Hide()
+			end
+		elseif not XanDUR_Opt.ShowMoreDetails and GameTooltip.qTipDur then
+			LibQTip:Release(GameTooltip.qTipDur)
+		end
+	
 		GameTooltip:SetOwner(self, "ANCHOR_NONE")
 		GameTooltip:SetPoint(self:GetTipAnchor(self))
 		GameTooltip:ClearLines()
@@ -176,35 +202,76 @@ function addon:CreateDURFrame()
 		GameTooltip:AddLine(" ")
 		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Total.."|r  ("..self:DurColor(tP)..tP.."%|r".."):", GetMoneyString(totalCost, true), nil,nil,nil, 1,1,1)
 		GameTooltip:Show()
+		
+		if GameTooltip.qTipDur and self.moreDurInfo and #self.moreDurInfo > 0 then
+			for k, v in ipairs(self.moreDurInfo) do
+				local moneyString = v.slotRepairCost
+				if v.slotRepairCost >= 0 then
+					moneyString = GetMoneyString(v.slotRepairCost, true)
+				else
+					moneyString = string.rep(" ", 4)
+				end
+				local lineNum = GameTooltip.qTipDur:AddLine("|cFFFFFFFF"..v.slotName, v.slotItem, v.slotDurability, moneyString)
+				--GameTooltip.qTipDur:SetLineTextColor(lineNum, color.r, color.g, color.b, 1)
+		
+			end
+			if GameTooltip.qTipDur then
+				GameTooltip.qTipDur:Show()
+			end
+		end
+					
+	end)
+	
+	GameTooltip:HookScript("OnHide", function(self)
+		if self.qTipDur then
+			self.qTipDur:Clear()
+			self.qTipDur:Hide()
+		end
 	end)
 	
 	addon:Show();
 end
 
 function addon:GetDurabilityInfo()
+	--https://wowpedia.fandom.com/wiki/Enum.InventoryType
 	
 	pEquipDura = { min=0, max=0};
 	pBagDura = { min=0, max=0};
 	
 	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, BackdropTemplateMixin and "BackdropTemplate") end
-	
-	equipCost = 0
-	for _, slotName in ipairs(Slots) do
-		local item = _G["Character" .. slotName]
-		if item then
-			local hasItem, _, repairCost = tmpTip:SetInventoryItem("player", item:GetID())
-			local Minimum, Maximum = GetInventoryItemDurability(item:GetID())
 
-			if hasItem and repairCost and repairCost > 0 then
-				equipCost = equipCost + repairCost
+	equipCost = 0
+
+	self.moreDurInfo = {}
+	self.addSpace = false
+	
+	
+	for slotName, slotID in pairs(Enum.InventoryType) do
+		local hasItem, _, repairCost = tmpTip:SetInventoryItem("player", slotID)
+		local Minimum, Maximum = GetInventoryItemDurability(slotID)
+		local equipLoc = slotName
+
+		if hasItem and repairCost and repairCost > 0 then
+			local itemLink = GetInventoryItemLink("player", slotID)
+		
+			if itemLink then
+				equipLoc = select(9, GetItemInfo(itemLink))
+				if equipLoc then equipLoc = _G[equipLoc] end
+				table.insert(self.moreDurInfo,  {slotName=equipLoc, slotItem=itemLink, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
+			else
+				local itemID = GetInventoryItemID("player", slotID) or "Unknown"
+				table.insert(self.moreDurInfo,  {slotName=equipLoc, slotItem="itemID:"..itemID, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
 			end
-			if Minimum and Maximum then
-				pEquipDura.min = pEquipDura.min + Minimum
-				pEquipDura.max = pEquipDura.max + Maximum
-			end
+			
+			equipCost = equipCost + repairCost
+		end
+
+		if Minimum and Maximum then
+			pEquipDura.min = pEquipDura.min + Minimum
+			pEquipDura.max = pEquipDura.max + Maximum
 		end
 	end
-
+	
 	bagCost = 0
 	for bag = 0, 4 do
 		for slot = 1, GetContainerNumSlots(bag) do
@@ -212,6 +279,23 @@ function addon:GetDurabilityInfo()
 			local Minimum, Maximum = GetContainerItemDurability(bag, slot)
 
 			if repairCost and repairCost > 0 then
+			
+				local _, _, _,_,_,_, itemLink = GetContainerItemInfo(bag, slot)
+				if itemLink then
+					if not self.addSpace then
+						table.insert(self.moreDurInfo,  {slotName=string.rep(" ", 4),  slotItem=string.rep(" ", 4), slotDurability=string.rep(" ", 4), slotRepairCost=-1})
+						self.addSpace = true
+					end
+					table.insert(self.moreDurInfo,  {slotName=BACKPACK_TOOLTIP, slotItem=itemLink, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
+				else
+					if not self.addSpace then
+						table.insert(self.moreDurInfo,  {slotName=string.rep(" ", 4),  slotItem=string.rep(" ", 4), slotDurability=string.rep(" ", 4), slotRepairCost=-1})
+						self.addSpace = true
+					end
+					local itemID = GetContainerItemID(bag, slot) or "Unknown"
+					table.insert(self.moreDurInfo,  {slotName=BACKPACK_TOOLTIP, slotItem="itemID:"..itemID, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
+				end
+			
 				bagCost = bagCost + repairCost
 			end
 			if Minimum and Maximum then

@@ -241,5 +241,25 @@ function configFrame:EnableConfig()
 		addConfigEntry(btnAutoRepairGuild, 0, -20)
 		addon.aboutPanel.btnAutoRepairGuild = btnAutoRepairGuild
 	end
+	
+	local btnShowMoreDetails = createCheckbutton(addon.aboutPanel, L.ShowMoreDetails)
+	btnShowMoreDetails:SetScript("OnShow", function() btnShowMoreDetails:SetChecked(XanDUR_Opt.ShowMoreDetails) end)
+	btnShowMoreDetails.func = function(slashSwitch)
+		local value = XanDUR_Opt.ShowMoreDetails
+		if not slashSwitch then value = XanDUR_Opt.ShowMoreDetails end
+
+		if value then
+			XanDUR_Opt.ShowMoreDetails = false
+			DEFAULT_CHAT_FRAME:AddMessage(L.ShowMoreDetailsOff)
+		else
+			XanDUR_Opt.ShowMoreDetails = true
+			DEFAULT_CHAT_FRAME:AddMessage(L.ShowMoreDetailsOn)
+		end
+	end
+	btnShowMoreDetails:SetScript("OnClick", btnShowMoreDetails.func)
+	
+	addConfigEntry(btnShowMoreDetails, 0, -20)
+	addon.aboutPanel.btnShowMoreDetails = btnShowMoreDetails
+	
 
 end
