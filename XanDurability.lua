@@ -18,6 +18,18 @@ local function Debug(...)
     if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
 end
 
+local WOW_PROJECT_ID = _G.WOW_PROJECT_ID
+local WOW_PROJECT_MAINLINE = _G.WOW_PROJECT_MAINLINE
+local WOW_PROJECT_CLASSIC = _G.WOW_PROJECT_CLASSIC
+--local WOW_PROJECT_BURNING_CRUSADE_CLASSIC = _G.WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+local WOW_PROJECT_WRATH_CLASSIC = _G.WOW_PROJECT_WRATH_CLASSIC
+
+addon.IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+--BSYC.IsTBC_C = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+addon.IsWLK_C = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+
+
 addon:RegisterEvent("ADDON_LOADED")
 addon:SetScript("OnEvent", function(self, event, ...)
 	if event == "ADDON_LOADED" or event == "PLAYER_LOGIN" then
@@ -51,7 +63,6 @@ local pBagDura = { min=0, max=0};
 
 local Slots = { "HeadSlot", "ShoulderSlot", "ChestSlot", "WaistSlot", "WristSlot", "HandsSlot", "LegsSlot", "FeetSlot", "MainHandSlot", "SecondaryHandSlot", "RangedSlot" }
 
-local IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 
 ----------------------
 --      Enable      --
@@ -326,7 +337,7 @@ function addon:MERCHANT_SHOW()
 		if CanMerchantRepair() then
 			local repairCost, canRepair = GetRepairAllCost()
 			if canRepair and repairCost > 0 then
-				if IsRetail and XanDUR_Opt.autoRepairUseGuild and CanGuildBankRepair() then
+				if not self.IsClassic and XanDUR_Opt.autoRepairUseGuild and CanGuildBankRepair() then
 					local amount = GetGuildBankWithdrawMoney()
 					local guildMoney = GetGuildBankMoney()
 					if amount == -1 then

@@ -8,7 +8,6 @@ addon.configFrame = CreateFrame("frame", ADDON_NAME.."_config_eventFrame", UIPar
 local configFrame = addon.configFrame
 
 local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
-local IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 
 local lastObject
 local function addConfigEntry(objEntry, adjustX, adjustY)
@@ -222,7 +221,7 @@ function configFrame:EnableConfig()
 	addConfigEntry(btnAutoRepair, 0, -40)
 	addon.aboutPanel.btnAutoRepair = btnAutoRepair
 	
-	if IsRetail then
+	if not self.IsClassic then
 		local btnAutoRepairGuild = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairGuildInfo)
 		btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_Opt.autoRepairUseGuild) end)
 		btnAutoRepairGuild.func = function(slashSwitch)
