@@ -101,6 +101,23 @@ function addon:EnableAddon()
 	
 end
 
+function addon:SetTipAnchor(frame, qTip)
+    local x, y = frame:GetCenter()
+	
+	qTip:ClearAllPoints()
+	qTip:SetClampedToScreen(true)
+	
+    if not x or not y then
+        qTip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
+		return
+    end
+
+    local hhalf = (x > UIParent:GetWidth() * 2 / 3) and "RIGHT" or (x < UIParent:GetWidth() / 3) and "LEFT" or ""
+    local vhalf = (y > UIParent:GetHeight() / 2) and "TOP" or "BOTTOM"
+
+	qTip:SetPoint(vhalf .. hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP") .. hhalf)
+end
+
 function addon:CreateDURFrame()
 
 	addon:SetWidth(61)
@@ -159,25 +176,13 @@ function addon:CreateDURFrame()
 
 	addon:SetScript("OnEnter",function()
 		if XanDUR_Opt.ShowMoreDetails then
-			if not GameTooltip.qTipDur then
-				GameTooltip.qTipDur = LibQTip:Acquire(GameTooltip:GetName(), 4, "LEFT", "CENTER", "LEFT", "RIGHT")
-				GameTooltip.qTipDur:Clear()
-				if GameTooltip:GetCenter() then --this will throw a LibQTip error if it can't find the center coords
-					GameTooltip.qTipDur:SmartAnchorTo(GameTooltip)
-				else
-					GameTooltip.qTipDur:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT")
-				end
+			if not GameTooltip.qTipDur or not LibQTip:IsAcquired(GameTooltip) then
+				GameTooltip.qTipDur = LibQTip:Acquire(GameTooltip, 4, "LEFT", "CENTER", "LEFT", "RIGHT")
 				GameTooltip.qTipDur.OnRelease = function() GameTooltip.qTipDur = nil end
-			else
-				--clear any item data already in the tooltip
-				if GameTooltip:GetCenter() then --this will throw a LibQTip error if it can't find the center coords
-					GameTooltip.qTipDur:SmartAnchorTo(GameTooltip)
-				else
-					GameTooltip.qTipDur:SetPoint("TOPRIGHT", GameTooltip, "BOTTOMRIGHT")
-				end
-				GameTooltip.qTipDur:Clear()
-				GameTooltip.qTipDur:Hide()
 			end
+			self:SetTipAnchor(GameTooltip, GameTooltip.qTipDur)
+			GameTooltip.qTipDur:Clear()
+
 		elseif not XanDUR_Opt.ShowMoreDetails and GameTooltip.qTipDur then
 			LibQTip:Release(GameTooltip.qTipDur)
 		end
@@ -224,7 +229,6 @@ function addon:CreateDURFrame()
 	
 	GameTooltip:HookScript("OnHide", function(self)
 		if self.qTipDur then
-			self.qTipDur:Clear()
 			self.qTipDur:Hide()
 		end
 	end)
