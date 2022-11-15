@@ -242,19 +242,35 @@ function addon:GetDurabilityInfo()
 	pEquipDura = { min=0, max=0};
 	pBagDura = { min=0, max=0};
 	
-	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, BackdropTemplateMixin and "BackdropTemplate") end
+	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, "GameTooltipTemplate") end
 
 	equipCost = 0
 
 	self.moreDurInfo = {}
 	self.addSpace = false
 	
+	local xGetNumSlots = addon.IsRetail and C_Container.GetContainerNumSlots or GetContainerNumSlots
+	local xGetContainerInfo = addon.IsRetail and C_Container.GetContainerItemInfo or GetContainerItemInfo
+	local xGetContainerItemDurability = addon.IsRetail and C_Container.GetContainerItemDurability or GetContainerItemDurability
 	
 	for slotName, slotID in pairs(Enum.InventoryType) do
-		local hasItem, _, repairCost = tmpTip:SetInventoryItem("player", slotID)
+		local hasItem, repairCost
+		
+		--we can't use SetInventoryItem on retail to get the repair costs as it will return nil, you have to use the C_TooltipInfo namespace for everything 
+		if addon.IsRetail then
+			hasItem = C_TooltipInfo.GetInventoryItem("player", slotID)
+			if hasItem then
+				TooltipUtil.SurfaceArgs(hasItem) --we use this function to put the data in a neat readable format for us
+				repairCost = hasItem.repairCost
+			end
+		else
+			--the old way
+			hasItem, _, repairCost = tmpTip:SetInventoryItem("player", slotID)
+		end
+			
 		local Minimum, Maximum = GetInventoryItemDurability(slotID)
 		local equipLoc = slotName
-
+		
 		if hasItem and repairCost and repairCost > 0 then
 			local itemLink = GetInventoryItemLink("player", slotID)
 		
@@ -278,13 +294,34 @@ function addon:GetDurabilityInfo()
 	
 	bagCost = 0
 	for bag = 0, 4 do
-		for slot = 1, GetContainerNumSlots(bag) do
-			local hasCooldown, repairCost = tmpTip:SetBagItem(bag, slot)
-			local Minimum, Maximum = GetContainerItemDurability(bag, slot)
+		for slot = 1, xGetNumSlots(bag) do
+			local repairCost
+			
+			--we can't use SetBagItem on retail as it generates errors and causes problems with BattlePet Tooltip, since they don't have durability
+			if addon.IsRetail then
+				local data = C_TooltipInfo.GetBagItem(bag, slot)
+				if data then
+					TooltipUtil.SurfaceArgs(data) --we use this function to put the data in a neat readable format for us
+					repairCost = data.repairCost
+				end
+			else
+				--the old way
+				_, repairCost = tmpTip:SetBagItem(bag, slot)
+			end
+			
+			local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
 
 			if repairCost and repairCost > 0 then
+				
+				local itemLink
+				
+				if addon.IsRetail then
+					local containerInfo = xGetContainerInfo(bag, slot)
+					itemLink = containerInfo and containerInfo.hyperlink
+				else
+					itemLink = select(7, xGetContainerInfo(bag, slot))
+				end
 			
-				local _, _, _,_,_,_, itemLink = GetContainerItemInfo(bag, slot)
 				if itemLink then
 					if not self.addSpace then
 						table.insert(self.moreDurInfo,  {slotName=string.rep(" ", 4),  slotItem=string.rep(" ", 4), slotDurability=string.rep(" ", 4), slotRepairCost=-1})
