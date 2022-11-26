@@ -249,15 +249,15 @@ function addon:GetDurabilityInfo()
 	self.moreDurInfo = {}
 	self.addSpace = false
 	
-	local xGetNumSlots = addon.IsRetail and C_Container.GetContainerNumSlots or GetContainerNumSlots
-	local xGetContainerInfo = addon.IsRetail and C_Container.GetContainerItemInfo or GetContainerItemInfo
-	local xGetContainerItemDurability = addon.IsRetail and C_Container.GetContainerItemDurability or GetContainerItemDurability
+	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+	local xGetContainerInfo = (C_Container and C_Container.GetContainerItemInfo) or GetContainerItemInfo
+	local xGetContainerItemDurability = (C_Container and C_Container.GetContainerItemDurability) or GetContainerItemDurability
 	
 	for slotName, slotID in pairs(Enum.InventoryType) do
 		local hasItem, repairCost
 		
 		--we can't use SetInventoryItem on retail to get the repair costs as it will return nil, you have to use the C_TooltipInfo namespace for everything 
-		if addon.IsRetail then
+		if C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
 			hasItem = C_TooltipInfo.GetInventoryItem("player", slotID)
 			if hasItem then
 				TooltipUtil.SurfaceArgs(hasItem) --we use this function to put the data in a neat readable format for us
@@ -298,7 +298,7 @@ function addon:GetDurabilityInfo()
 			local repairCost
 			
 			--we can't use SetBagItem on retail as it generates errors and causes problems with BattlePet Tooltip, since they don't have durability
-			if addon.IsRetail then
+			if C_TooltipInfo and C_TooltipInfo.GetBagItem then
 				local data = C_TooltipInfo.GetBagItem(bag, slot)
 				if data then
 					TooltipUtil.SurfaceArgs(data) --we use this function to put the data in a neat readable format for us
@@ -315,7 +315,7 @@ function addon:GetDurabilityInfo()
 				
 				local itemLink
 				
-				if addon.IsRetail then
+				if C_Container and C_Container.GetContainerItemInfo then
 					local containerInfo = xGetContainerInfo(bag, slot)
 					itemLink = containerInfo and containerInfo.hyperlink
 				else
