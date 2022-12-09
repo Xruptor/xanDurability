@@ -62,6 +62,8 @@ local totalCost = 0;
 local pEquipDura = { min=0, max=0};
 local pBagDura = { min=0, max=0};
 
+local xanDurabilityTooltip = CreateFrame("GameTooltip", "xanDurabilityTooltip", UIParent, "GameTooltipTemplate")
+
 ----------------------
 --      Enable      --
 ----------------------
@@ -170,27 +172,27 @@ function addon:CreateDURFrame()
 		end
 	end)
 	addon:SetScript("OnLeave",function()
-		GameTooltip:Hide()
+		xanDurabilityTooltip:Hide()
 	end)
 
 
 	addon:SetScript("OnEnter",function()
 		if XanDUR_Opt.ShowMoreDetails then
-			if not GameTooltip.qTipDur or not LibQTip:IsAcquired(GameTooltip) then
-				GameTooltip.qTipDur = LibQTip:Acquire(GameTooltip, 4, "LEFT", "CENTER", "LEFT", "RIGHT")
-				GameTooltip.qTipDur.OnRelease = function() GameTooltip.qTipDur = nil end
+			if not xanDurabilityTooltip.qTipDur or not LibQTip:IsAcquired(xanDurabilityTooltip) then
+				xanDurabilityTooltip.qTipDur = LibQTip:Acquire(xanDurabilityTooltip, 4, "LEFT", "CENTER", "LEFT", "RIGHT")
+				xanDurabilityTooltip.qTipDur.OnRelease = function() xanDurabilityTooltip.qTipDur = nil end
 			end
-			self:SetTipAnchor(GameTooltip, GameTooltip.qTipDur)
-			GameTooltip.qTipDur:Clear()
+			self:SetSmartTipAnchor(xanDurabilityTooltip, xanDurabilityTooltip.qTipDur)
+			xanDurabilityTooltip.qTipDur:Clear()
 
-		elseif not XanDUR_Opt.ShowMoreDetails and GameTooltip.qTipDur then
-			LibQTip:Release(GameTooltip.qTipDur)
+		elseif not XanDUR_Opt.ShowMoreDetails and xanDurabilityTooltip.qTipDur then
+			LibQTip:Release(xanDurabilityTooltip.qTipDur)
 		end
 	
-		GameTooltip:SetOwner(self, "ANCHOR_NONE")
-		GameTooltip:SetPoint(self:GetTipAnchor(self))
-		GameTooltip:ClearLines()
-
+		xanDurabilityTooltip:SetOwner(self, "ANCHOR_TOP")
+		xanDurabilityTooltip:SetPoint(self:GetTipAnchor(addon))
+		xanDurabilityTooltip:ClearLines()
+		
 		local cP = (pEquipDura.max > 0 and floor(pEquipDura.min / pEquipDura.max * 100)) or 100
 		local bP = (pBagDura.max > 0 and floor(pBagDura.min / pBagDura.max * 100)) or 100
 		local tP = ((pEquipDura.max + pBagDura.max) > 0 and floor( (pEquipDura.min + pBagDura.min) / (pEquipDura.max + pBagDura.max) * 100)) or 100
@@ -199,16 +201,16 @@ function addon:CreateDURFrame()
 		if bP > 100 then bP = 100 end
 		if tP > 100 then tP = 100 end
 
-		GameTooltip:AddLine(ADDON_NAME)
-		GameTooltip:AddLine(L.TooltipDragInfo, 64/255, 224/255, 208/255)
-		GameTooltip:AddLine(" ")
-		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Equipped.."|r  ("..self:DurColor(cP)..cP.."%|r".."):", GetMoneyString(equipCost, true), nil,nil,nil, 1,1,1)
-		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Bags.."|r  ("..self:DurColor(bP)..bP.."%|r".."):", GetMoneyString(bagCost, true), nil,nil,nil, 1,1,1)
-		GameTooltip:AddLine(" ")
-		GameTooltip:AddDoubleLine("|cFFFFFFFF"..L.Total.."|r  ("..self:DurColor(tP)..tP.."%|r".."):", GetMoneyString(totalCost, true), nil,nil,nil, 1,1,1)
-		GameTooltip:Show()
+		xanDurabilityTooltip:AddLine(ADDON_NAME)
+		xanDurabilityTooltip:AddLine(L.TooltipDragInfo, 64/255, 224/255, 208/255)
+		xanDurabilityTooltip:AddLine(" ")
+		xanDurabilityTooltip:AddDoubleLine("|cFFFFFFFF"..L.Equipped.."|r  ("..self:DurColor(cP)..cP.."%|r".."):", GetMoneyString(equipCost, true), nil,nil,nil, 1,1,1)
+		xanDurabilityTooltip:AddDoubleLine("|cFFFFFFFF"..L.Bags.."|r  ("..self:DurColor(bP)..bP.."%|r".."):", GetMoneyString(bagCost, true), nil,nil,nil, 1,1,1)
+		xanDurabilityTooltip:AddLine(" ")
+		xanDurabilityTooltip:AddDoubleLine("|cFFFFFFFF"..L.Total.."|r  ("..self:DurColor(tP)..tP.."%|r".."):", GetMoneyString(totalCost, true), nil,nil,nil, 1,1,1)
+		xanDurabilityTooltip:Show()
 		
-		if GameTooltip.qTipDur and self.moreDurInfo and #self.moreDurInfo > 0 then
+		if xanDurabilityTooltip.qTipDur and self.moreDurInfo and #self.moreDurInfo > 0 then
 			for k, v in ipairs(self.moreDurInfo) do
 				local moneyString = v.slotRepairCost
 				if v.slotRepairCost >= 0 then
@@ -216,18 +218,18 @@ function addon:CreateDURFrame()
 				else
 					moneyString = string.rep(" ", 4)
 				end
-				local lineNum = GameTooltip.qTipDur:AddLine("|cFFFFFFFF"..v.slotName, v.slotItem, v.slotDurability, moneyString)
-				--GameTooltip.qTipDur:SetLineTextColor(lineNum, color.r, color.g, color.b, 1)
+				local lineNum = xanDurabilityTooltip.qTipDur:AddLine("|cFFFFFFFF"..v.slotName, v.slotItem, v.slotDurability, moneyString)
+				--xanDurabilityTooltip.qTipDur:SetLineTextColor(lineNum, color.r, color.g, color.b, 1)
 		
 			end
-			if GameTooltip.qTipDur then
-				GameTooltip.qTipDur:Show()
+			if xanDurabilityTooltip.qTipDur then
+				xanDurabilityTooltip.qTipDur:Show()
 			end
 		end
 					
 	end)
 	
-	GameTooltip:HookScript("OnHide", function(self)
+	xanDurabilityTooltip:HookScript("OnHide", function(self)
 		if self.qTipDur then
 			self.qTipDur:Hide()
 		end
@@ -501,4 +503,21 @@ function addon:GetTipAnchor(frame)
 	local hhalf = (x > UIParent:GetWidth()*2/3) and "RIGHT" or (x < UIParent:GetWidth()/3) and "LEFT" or ""
 	local vhalf = (y > UIParent:GetHeight()/2) and "TOP" or "BOTTOM"
 	return vhalf..hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP")..hhalf
+end
+
+function addon:SetSmartTipAnchor(frame, qTip)
+    local x, y = frame:GetCenter()
+	
+	qTip:ClearAllPoints()
+	qTip:SetClampedToScreen(true)
+	
+    if not x or not y then
+        qTip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
+		return
+    end
+
+    local hhalf = (x > UIParent:GetWidth() * 2 / 3) and "RIGHT" or (x < UIParent:GetWidth() / 3) and "LEFT" or ""
+    local vhalf = (y > UIParent:GetHeight() / 2) and "TOP" or "BOTTOM"
+
+	qTip:SetPoint(vhalf .. hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP") .. hhalf)
 end
