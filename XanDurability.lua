@@ -77,14 +77,14 @@ function addon:EnableAddon()
 	if XanDUR_Opt.autoRepair == nil then XanDUR_Opt.autoRepair = true end
 	if XanDUR_Opt.autoRepairUseGuild == nil then XanDUR_Opt.autoRepairUseGuild = false end
 	if XanDUR_Opt.ShowMoreDetails == nil then XanDUR_Opt.ShowMoreDetails = true end
-	
+
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
 	self:RegisterEvent("MERCHANT_SHOW")
-	
+
 	SLASH_XANDURABILITY1 = "/xdu";
 	SlashCmdList["XANDURABILITY"] = function()
 		if not addon.IsRetail then
@@ -92,23 +92,23 @@ function addon:EnableAddon()
 		end
 		InterfaceOptionsFrame_OpenToCategory(addon.aboutPanel) --force the panel to show
 	end
-	
+
 	if addon.configFrame then addon.configFrame:EnableConfig() end
-	
+
 	local ver = GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
 	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xdu", ADDON_NAME, ver or "1.0"))
 
 	addon:GetDurabilityInfo()
 	addon:UpdatePercent()
-	
+
 end
 
 function addon:SetTipAnchor(frame, qTip)
     local x, y = frame:GetCenter()
-	
+
 	qTip:ClearAllPoints()
 	qTip:SetClampedToScreen(true)
-	
+
     if not x or not y then
         qTip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
 		return
@@ -126,9 +126,9 @@ function addon:CreateDURFrame()
 	addon:SetHeight(27)
 	addon:SetMovable(true)
 	addon:SetClampedToScreen(true)
-	
+
 	addon:SetScale(XanDUR_DB.scale)
-	
+
 	if XanDUR_DB.bgShown then
 		addon:SetBackdrop( {
 			bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground";
@@ -141,9 +141,9 @@ function addon:CreateDURFrame()
 	else
 		addon:SetBackdrop(nil)
 	end
-	
+
 	addon:EnableMouse(true);
-	
+
 	local t = addon:CreateTexture("$parentIcon", "ARTWORK")
 	t:SetTexture("Interface\\Icons\\Trade_Blacksmithing")
 	t:SetWidth(16)
@@ -178,25 +178,25 @@ function addon:CreateDURFrame()
 
 	addon:SetScript("OnEnter",function()
 		if XanDUR_Opt.ShowMoreDetails then
-			if not xanDurabilityTooltip.qTipDur or not LibQTip:IsAcquired(xanDurabilityTooltip) then
-				xanDurabilityTooltip.qTipDur = LibQTip:Acquire(xanDurabilityTooltip, 4, "LEFT", "CENTER", "LEFT", "RIGHT")
-				xanDurabilityTooltip.qTipDur.OnRelease = function() xanDurabilityTooltip.qTipDur = nil end
+			if not xanDurabilityTooltip.qTipDur or not LibQTip:IsAcquired("xanDurabilityQTip") then
+				xanDurabilityTooltip.qTipDur = LibQTip:Acquire("xanDurabilityQTip", 4, "LEFT", "CENTER", "LEFT", "RIGHT")
 			end
 			self:SetSmartTipAnchor(xanDurabilityTooltip, xanDurabilityTooltip.qTipDur)
 			xanDurabilityTooltip.qTipDur:Clear()
 
 		elseif not XanDUR_Opt.ShowMoreDetails and xanDurabilityTooltip.qTipDur then
 			LibQTip:Release(xanDurabilityTooltip.qTipDur)
+			xanDurabilityTooltip.qTipDur = nil
 		end
-	
+
 		xanDurabilityTooltip:SetOwner(self, "ANCHOR_TOP")
 		xanDurabilityTooltip:SetPoint(self:GetTipAnchor(addon))
 		xanDurabilityTooltip:ClearLines()
-		
+
 		local cP = (pEquipDura.max > 0 and floor(pEquipDura.min / pEquipDura.max * 100)) or 100
 		local bP = (pBagDura.max > 0 and floor(pBagDura.min / pBagDura.max * 100)) or 100
 		local tP = ((pEquipDura.max + pBagDura.max) > 0 and floor( (pEquipDura.min + pBagDura.min) / (pEquipDura.max + pBagDura.max) * 100)) or 100
-		
+
 		if cP > 100 then cP = 100 end
 		if bP > 100 then bP = 100 end
 		if tP > 100 then tP = 100 end
@@ -209,7 +209,7 @@ function addon:CreateDURFrame()
 		xanDurabilityTooltip:AddLine(" ")
 		xanDurabilityTooltip:AddDoubleLine("|cFFFFFFFF"..L.Total.."|r  ("..self:DurColor(tP)..tP.."%|r".."):", GetMoneyString(totalCost, true), nil,nil,nil, 1,1,1)
 		xanDurabilityTooltip:Show()
-		
+
 		if xanDurabilityTooltip.qTipDur and self.moreDurInfo and #self.moreDurInfo > 0 then
 			for k, v in ipairs(self.moreDurInfo) do
 				local moneyString = v.slotRepairCost
@@ -220,44 +220,45 @@ function addon:CreateDURFrame()
 				end
 				local lineNum = xanDurabilityTooltip.qTipDur:AddLine("|cFFFFFFFF"..v.slotName, v.slotItem, v.slotDurability, moneyString)
 				--xanDurabilityTooltip.qTipDur:SetLineTextColor(lineNum, color.r, color.g, color.b, 1)
-		
+
 			end
 			if xanDurabilityTooltip.qTipDur then
 				xanDurabilityTooltip.qTipDur:Show()
 			end
 		end
-					
+
 	end)
-	
+
 	xanDurabilityTooltip:HookScript("OnHide", function(self)
 		if self.qTipDur then
-			self.qTipDur:Hide()
+			LibQTip:Release(self.qTipDur)
+			self.qTipDur = nil
 		end
 	end)
-	
-	addon:Show();
+
+	addon:Show()
 end
 
 function addon:GetDurabilityInfo()
 	--https://wowpedia.fandom.com/wiki/Enum.InventoryType
-	
+
 	pEquipDura = { min=0, max=0};
 	pBagDura = { min=0, max=0};
-	
+
 	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, "GameTooltipTemplate") end
 
 	equipCost = 0
 
 	self.moreDurInfo = {}
 	self.addSpace = false
-	
+
 	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
 	local xGetContainerInfo = (C_Container and C_Container.GetContainerItemInfo) or GetContainerItemInfo
 	local xGetContainerItemDurability = (C_Container and C_Container.GetContainerItemDurability) or GetContainerItemDurability
-	
+
 	for slotName, slotID in pairs(Enum.InventoryType) do
 		local hasItem, repairCost
-		
+
 		--we can't use SetInventoryItem on retail to get the repair costs as it will return nil, you have to use the C_TooltipInfo namespace for everything 
 		if C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
 			hasItem = C_TooltipInfo.GetInventoryItem("player", slotID)
@@ -269,13 +270,13 @@ function addon:GetDurabilityInfo()
 			--the old way
 			hasItem, _, repairCost = tmpTip:SetInventoryItem("player", slotID)
 		end
-			
+
 		local Minimum, Maximum = GetInventoryItemDurability(slotID)
 		local equipLoc = slotName
-		
+
 		if hasItem and repairCost and repairCost > 0 then
 			local itemLink = GetInventoryItemLink("player", slotID)
-		
+
 			if itemLink then
 				equipLoc = select(9, GetItemInfo(itemLink))
 				if equipLoc then equipLoc = _G[equipLoc] end
@@ -284,7 +285,7 @@ function addon:GetDurabilityInfo()
 				local itemID = GetInventoryItemID("player", slotID) or "Unknown"
 				table.insert(self.moreDurInfo,  {slotName=equipLoc, slotItem="itemID:"..itemID, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
 			end
-			
+
 			equipCost = equipCost + repairCost
 		end
 
@@ -293,12 +294,12 @@ function addon:GetDurabilityInfo()
 			pEquipDura.max = pEquipDura.max + Maximum
 		end
 	end
-	
+
 	bagCost = 0
 	for bag = 0, 4 do
 		for slot = 1, xGetNumSlots(bag) do
 			local repairCost
-			
+
 			--we can't use SetBagItem on retail as it generates errors and causes problems with BattlePet Tooltip, since they don't have durability
 			if C_TooltipInfo and C_TooltipInfo.GetBagItem then
 				local data = C_TooltipInfo.GetBagItem(bag, slot)
@@ -310,20 +311,20 @@ function addon:GetDurabilityInfo()
 				--the old way
 				_, repairCost = tmpTip:SetBagItem(bag, slot)
 			end
-			
+
 			local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
 
 			if repairCost and repairCost > 0 then
-				
+
 				local itemLink
-				
+
 				if C_Container and C_Container.GetContainerItemInfo then
 					local containerInfo = xGetContainerInfo(bag, slot)
 					itemLink = containerInfo and containerInfo.hyperlink
 				else
 					itemLink = select(7, xGetContainerInfo(bag, slot))
 				end
-			
+
 				if itemLink then
 					if not self.addSpace then
 						table.insert(self.moreDurInfo,  {slotName=string.rep(" ", 4),  slotItem=string.rep(" ", 4), slotDurability=string.rep(" ", 4), slotRepairCost=-1})
@@ -338,7 +339,7 @@ function addon:GetDurabilityInfo()
 					local itemID = GetContainerItemID(bag, slot) or "Unknown"
 					table.insert(self.moreDurInfo,  {slotName=BACKPACK_TOOLTIP, slotItem="itemID:"..itemID, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
 				end
-			
+
 				bagCost = bagCost + repairCost
 			end
 			if Minimum and Maximum then
@@ -348,7 +349,7 @@ function addon:GetDurabilityInfo()
 		end
 	end
 	if bagCost < 0 then bagCost = 0 end
-	
+
 	totalCost = equipCost + bagCost
 end
 
@@ -362,7 +363,7 @@ function addon:SaveLayout(frame)
 	if type(frame) ~= "string" then return end
 	if not _G[frame] then return end
 	if not XanDUR_DB then XanDUR_DB = {} end
-	
+
 	local opt = XanDUR_DB[frame] or nil
 
 	if not opt then
@@ -422,7 +423,7 @@ end
 function addon:DurColor(percent)
 
 	local tmpString = ""
-	
+
 	if percent >= 80 then
 		tmpString = "|cff00FF00"
 	elseif percent >= 60 then
@@ -434,7 +435,7 @@ function addon:DurColor(percent)
 	elseif percent >= 0 then
 		tmpString = "|cffFF2000"
 	end
-	
+
 	return tmpString;
 end
 
@@ -488,9 +489,9 @@ function addon:MERCHANT_SHOW()
 				end
 			end
 		end
-		
+
 	end
-	
+
 end
 
 ------------------------
@@ -507,10 +508,10 @@ end
 
 function addon:SetSmartTipAnchor(frame, qTip)
     local x, y = frame:GetCenter()
-	
+
 	qTip:ClearAllPoints()
 	qTip:SetClampedToScreen(true)
-	
+
     if not x or not y then
         qTip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
 		return
