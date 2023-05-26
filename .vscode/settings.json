@@ -1,0 +1,14 @@
+{
+    "Lua.diagnostics.globals": [
+        "SlashCmdList",
+        "DEFAULT_CHAT_FRAME",
+        "InterfaceOptionsFrame_OpenToCategory",
+        "tostringall",
+        "TooltipUtil",
+        "BACKPACK_TOOLTIP",
+        "InterfaceOptions_AddCategory",
+        "BACKDROP_SLIDER_8_8",
+        "TooltipBackdropTemplateMixin",
+        "NineSlicePanelMixin"
+    ]
+}

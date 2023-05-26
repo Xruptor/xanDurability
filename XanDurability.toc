@@ -1,11 +1,11 @@
-## Interface: 100005
-## Interface-Retail: 100005
+## Interface: 100100
+## Interface-Retail: 100100
 ## Interface-Classic: 11403
 ## Interface-Wrath: 30401
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Author: Xruptor
-## Version: 5.7
+## Version: 5.8
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915
 ## X-Wago-ID: Qb6m4YNP
