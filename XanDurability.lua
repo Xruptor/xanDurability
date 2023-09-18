@@ -127,7 +127,7 @@ function addon:CreateDURFrame()
 	addon:SetMovable(true)
 	addon:SetClampedToScreen(true)
 
-	addon:SetScale(XanDUR_DB.scale)
+	addon:SetAddonScale(XanDUR_DB.scale, true)
 
 	if XanDUR_DB.bgShown then
 		addon:SetBackdrop( {
@@ -237,6 +237,19 @@ function addon:CreateDURFrame()
 	end)
 
 	addon:Show()
+end
+
+function addon:SetAddonScale(value, bypass)
+	--fix this in case it's ever smaller than   
+	if value < 0.5 then value = 0.5 end --anything smaller and it would vanish  
+	if value > 5 then value = 5 end --WAY too big  
+
+	XanDUR_DB.scale = value
+
+	if not bypass then
+		DEFAULT_CHAT_FRAME:AddMessage(string.format(L.SlashScaleSet, value))
+	end
+	addon:SetScale(XanDUR_DB.scale)
 end
 
 function addon:GetDurabilityInfo()
