@@ -5,8 +5,9 @@
 ## Interface-Cata: 40400
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
+## Notes-zhCN: 独立窗口显示当前角色的装备耐久度。
 ## Author: Xruptor
-## Version: 6.0
+## Version: 6.1
 ## IconTexture: Interface\Icons\Trade_Blacksmithing
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915
@@ -20,6 +21,7 @@ libs\AceLocale-3.0\AceLocale-3.0.xml
 libs\LibQTip-1.0\LibQTip-1.0.lua
 
 locale\enUS.lua
+locale\zhCN.lua
 
 xanDurability.lua
 config.lua
