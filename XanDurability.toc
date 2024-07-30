@@ -1,12 +1,9 @@
-## Interface: 100207
-## Interface-Retail: 100207
-## Interface-Classic: 11502
-## Interface-Cata: 40400
+## Interface: 100207, 110000, 110002, 11502, 40400
 ## Title: xanDurability
 ## Notes: A small window that displays the total current armour durability.
 ## Notes-zhCN: 独立窗口显示当前角色的装备耐久度。
 ## Author: Xruptor
-## Version: 6.4
+## Version: 6.5
 ## IconTexture: Interface\Icons\Trade_Blacksmithing
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915
