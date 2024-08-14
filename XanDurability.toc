@@ -3,7 +3,7 @@
 ## Notes: A small window that displays the total current armour durability.
 ## Notes-zhCN: 独立窗口显示当前角色的装备耐久度。
 ## Author: Xruptor
-## Version: 6.5
+## Version: 6.6
 ## IconTexture: Interface\Icons\Trade_Blacksmithing
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915

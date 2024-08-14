@@ -276,7 +276,6 @@ function addon:GetDurabilityInfo()
 		if C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
 			hasItem = C_TooltipInfo.GetInventoryItem("player", slotID)
 			if hasItem then
-				TooltipUtil.SurfaceArgs(hasItem) --we use this function to put the data in a neat readable format for us
 				repairCost = hasItem.repairCost
 			end
 		else
@@ -317,7 +316,6 @@ function addon:GetDurabilityInfo()
 			if C_TooltipInfo and C_TooltipInfo.GetBagItem then
 				local data = C_TooltipInfo.GetBagItem(bag, slot)
 				if data then
-					TooltipUtil.SurfaceArgs(data) --we use this function to put the data in a neat readable format for us
 					repairCost = data.repairCost
 				end
 			else
