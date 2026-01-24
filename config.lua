@@ -7,7 +7,7 @@ addon = _G[ADDON_NAME]
 addon.configFrame = CreateFrame("frame", ADDON_NAME.."_config_eventFrame", UIParent, BackdropTemplateMixin and "BackdropTemplate")
 local configFrame = addon.configFrame
 
-local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
+local L = addon.L
 
 local lastObject
 local function addConfigEntry(objEntry, adjustX, adjustY)
@@ -28,7 +28,7 @@ local function createCheckbutton(parentFrame, displayText)
 	chkBoxIndex = chkBoxIndex + 1
 	
 	local checkbutton = CreateFrame("CheckButton", ADDON_NAME.."_config_chkbtn_" .. chkBoxIndex, parentFrame, "ChatConfigCheckButtonTemplate")
-	getglobal(checkbutton:GetName() .. 'Text'):SetText(" "..displayText)
+	getglobal(checkbutton:GetName() .. 'Text'):SetText(" " .. (displayText or ""))
 	
 	return checkbutton
 end
@@ -97,7 +97,12 @@ local function LoadAboutFrame()
 	about:Hide()
 	
     local fields = {"Version", "Author"}
-	local notes = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Notes")
+	local notes
+	if C_AddOns and C_AddOns.GetAddOnMetadata then
+		notes = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Notes")
+	elseif GetAddOnMetadata then
+		notes = GetAddOnMetadata(ADDON_NAME, "Notes")
+	end
 
     local title = about:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 
@@ -115,7 +120,12 @@ local function LoadAboutFrame()
 
 	local anchor
 	for _,field in pairs(fields) do
-		local val = C_AddOns.GetAddOnMetadata(ADDON_NAME, field)
+		local val
+		if C_AddOns and C_AddOns.GetAddOnMetadata then
+			val = C_AddOns.GetAddOnMetadata(ADDON_NAME, field)
+		elseif GetAddOnMetadata then
+			val = GetAddOnMetadata(ADDON_NAME, field)
+		end
 		if val then
 			local title = about:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 			title:SetWidth(75)
@@ -225,7 +235,7 @@ function configFrame:EnableConfig()
 	addConfigEntry(btnAutoRepair, 0, -40)
 	addon.aboutPanel.btnAutoRepair = btnAutoRepair
 	
-	if not self.IsClassic then
+	if not addon.IsClassic then
 		local btnAutoRepairGuild = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairGuildInfo)
 		btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_Opt.autoRepairUseGuild) end)
 		btnAutoRepairGuild.func = function(slashSwitch)

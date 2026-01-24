@@ -5,18 +5,37 @@
 --This mod creates a very simple movable box with the current players durability.  The box can be moved :)
 --use /xdu to access the slash commands
 
-local ADDON_NAME, addon = ...
+local ADDON_NAME, private = ...
 if not _G[ADDON_NAME] then
 	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate")
 end
 addon = _G[ADDON_NAME]
 
-local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME)
-local LibQTip = LibStub('LibQTip-1.0')
+-- Locale files load with the addon's private table (2nd return from "...").
+-- The main addon frame is stored in _G[ADDON_NAME]. Bridge the locales over.
+addon.private = private
+if private and type(private) == "table" and private.locales and type(private.locales) == "table" then
+	addon.locales = private.locales
+else
+	addon.locales = addon.locales or {}
+end
+local function ResolveLocale()
+	local current = (GetLocale and GetLocale()) or "enUS"
+	local base = addon.locales["enUS"] or {}
+	local chosen = addon.locales[current] or {}
+	if chosen ~= base and getmetatable(chosen) == nil then
+		setmetatable(chosen, { __index = base })
+	end
+	return chosen, current
+end
 
-local debugf = tekDebug and tekDebug:GetFrame(ADDON_NAME)
-local function Debug(...)
-    if debugf then debugf:AddMessage(string.join(", ", tostringall(...))) end
+local L = addon.L or ResolveLocale()
+addon.L = L
+
+local PAD4 = "    "
+
+local wipeTable = _G.wipe or function(t)
+	for k in pairs(t) do t[k] = nil end
 end
 
 local WOW_PROJECT_ID = _G.WOW_PROJECT_ID
@@ -54,15 +73,31 @@ addon:SetScript("OnEvent", function(self, event, ...)
 end)
 
 --repair variables
-local equipCost = 0;
-local bagCost = 0;
-local totalCost = 0;
+local equipCost = 0
+local bagCost = 0
+local totalCost = 0
 
 --percent variables
-local pEquipDura = { min=0, max=0};
-local pBagDura = { min=0, max=0};
+local pEquipDura = { min=0, max=0 }
+local pBagDura = { min=0, max=0 }
 
 local xanDurabilityTooltip = CreateFrame("GameTooltip", "xanDurabilityTooltip", UIParent, "GameTooltipTemplate")
+local tmpTip
+
+local function GetNumBagSlots()
+	return (_G.NUM_BAG_SLOTS ~= nil and _G.NUM_BAG_SLOTS) or 4
+end
+
+local function ForEachBagIndex(callback)
+	for bag = 0, GetNumBagSlots() do
+		callback(bag)
+	end
+
+	-- Retail reagent bag (avoid hard-failing on Classic)
+	if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag ~= nil then
+		callback(Enum.BagIndex.ReagentBag)
+	end
+end
 
 ----------------------
 --      Enable      --
@@ -83,6 +118,8 @@ function addon:EnableAddon()
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
+	self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+	self:RegisterEvent("BAG_UPDATE_DELAYED")
 	self:RegisterEvent("MERCHANT_SHOW")
 
 	SLASH_XANDURABILITY1 = "/xdu";
@@ -106,29 +143,19 @@ function addon:EnableAddon()
 
 	if addon.configFrame then addon.configFrame:EnableConfig() end
 
-	local ver = C_AddOns.GetAddOnMetadata(ADDON_NAME,"Version") or '1.0'
+	local ver
+	if C_AddOns and C_AddOns.GetAddOnMetadata then
+		ver = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version")
+	elseif GetAddOnMetadata then
+		ver = GetAddOnMetadata(ADDON_NAME, "Version")
+	end
+	ver = ver or "1.0"
 	DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFF99CC33%s|r [v|cFF20ff20%s|r] loaded:   /xdu", ADDON_NAME, ver or "1.0"))
 
-	addon:GetDurabilityInfo()
-	addon:UpdatePercent()
+	self._durabilityDirty = true
+	self._repairDirty = true
+	self:RequestUpdate()
 
-end
-
-function addon:SetTipAnchor(frame, qTip)
-    local x, y = frame:GetCenter()
-
-	qTip:ClearAllPoints()
-	qTip:SetClampedToScreen(true)
-
-    if not x or not y then
-        qTip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
-		return
-    end
-
-    local hhalf = (x > UIParent:GetWidth() * 2 / 3) and "RIGHT" or (x < UIParent:GetWidth() / 3) and "LEFT" or ""
-    local vhalf = (y > UIParent:GetHeight() / 2) and "TOP" or "BOTTOM"
-
-	qTip:SetPoint(vhalf .. hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP") .. hhalf)
 end
 
 function addon:CreateDURFrame()
@@ -165,14 +192,15 @@ function addon:CreateDURFrame()
 	g:SetJustifyH("LEFT")
 	g:SetPoint("CENTER",8,0)
 	g:SetText("")
+	addon.text = g
 
-	addon:SetScript("OnMouseDown",function()
+	addon:SetScript("OnMouseDown",function(self)
 		if (IsShiftKeyDown()) then
 			self.isMoving = true
 			self:StartMoving();
 	 	end
 	end)
-	addon:SetScript("OnMouseUp",function()
+	addon:SetScript("OnMouseUp",function(self)
 		if( self.isMoving ) then
 
 			self.isMoving = nil
@@ -182,26 +210,25 @@ function addon:CreateDURFrame()
 
 		end
 	end)
-	addon:SetScript("OnLeave",function()
+	addon:SetScript("OnLeave",function(self)
 		xanDurabilityTooltip:Hide()
 	end)
 
 
-	addon:SetScript("OnEnter",function()
-		if XanDUR_Opt.ShowMoreDetails then
-			if not xanDurabilityTooltip.qTipDur or not LibQTip:IsAcquired("xanDurabilityQTip") then
-				xanDurabilityTooltip.qTipDur = LibQTip:Acquire("xanDurabilityQTip", 4, "LEFT", "CENTER", "LEFT", "RIGHT")
-			end
-			self:SetSmartTipAnchor(xanDurabilityTooltip, xanDurabilityTooltip.qTipDur)
-			xanDurabilityTooltip.qTipDur:Clear()
-
-		elseif not XanDUR_Opt.ShowMoreDetails and xanDurabilityTooltip.qTipDur then
-			LibQTip:Release(xanDurabilityTooltip.qTipDur)
-			xanDurabilityTooltip.qTipDur = nil
+	addon:SetScript("OnEnter",function(self)
+		-- Ensure durability is current for displayed percentages.
+		if addon._durabilityDirty then
+			addon:ScanDurabilityLight()
 		end
 
-		xanDurabilityTooltip:SetOwner(self, "ANCHOR_TOP")
-		xanDurabilityTooltip:SetPoint(self:GetTipAnchor(addon))
+		-- Only build repair info when the tooltip is actually shown.
+		-- Always compute totals; compute per-item rows only when enabled.
+		if addon._repairDirty or (XanDUR_Opt.ShowMoreDetails and not addon._repairDetailsMode) then
+			addon:ScanRepairDetails(XanDUR_Opt.ShowMoreDetails)
+		end
+
+		xanDurabilityTooltip:SetOwner(self, "ANCHOR_NONE")
+		addon:SetSmartTipAnchor(self, xanDurabilityTooltip)
 		xanDurabilityTooltip:ClearLines()
 
 		local cP = (pEquipDura.max > 0 and floor(pEquipDura.min / pEquipDura.max * 100)) or 100
@@ -219,32 +246,31 @@ function addon:CreateDURFrame()
 		xanDurabilityTooltip:AddDoubleLine("|cFFFFFFFF"..L.Bags.."|r  ("..self:DurColor(bP)..bP.."%|r".."):", GetMoneyString(bagCost, true), nil,nil,nil, 1,1,1)
 		xanDurabilityTooltip:AddLine(" ")
 		xanDurabilityTooltip:AddDoubleLine("|cFFFFFFFF"..L.Total.."|r  ("..self:DurColor(tP)..tP.."%|r".."):", GetMoneyString(totalCost, true), nil,nil,nil, 1,1,1)
+
+		if XanDUR_Opt.ShowMoreDetails and self.moreDurInfo and #self.moreDurInfo > 0 then
+			xanDurabilityTooltip:AddLine(" ")
+			for _, v in ipairs(self.moreDurInfo) do
+				if v.slotRepairCost and v.slotRepairCost < 0 then
+					xanDurabilityTooltip:AddLine(" ")
+				else
+					local left = v.slotName or ""
+					local item = v.slotItem or ""
+					if left ~= "" then
+						left = "|cFFFFFFFF" .. left .. "|r"
+					end
+					if item ~= "" then
+						left = (left ~= "" and (left .. ": " .. item)) or item
+					end
+
+					local moneyString = (v.slotRepairCost and GetMoneyString(v.slotRepairCost, true)) or ""
+					local right = (v.slotDurability or "") .. "  " .. moneyString
+					xanDurabilityTooltip:AddDoubleLine(left, right)
+				end
+			end
+		end
+
 		xanDurabilityTooltip:Show()
 
-		if xanDurabilityTooltip.qTipDur and self.moreDurInfo and #self.moreDurInfo > 0 then
-			for k, v in ipairs(self.moreDurInfo) do
-				local moneyString = v.slotRepairCost
-				if v.slotRepairCost >= 0 then
-					moneyString = GetMoneyString(v.slotRepairCost, true)
-				else
-					moneyString = string.rep(" ", 4)
-				end
-				local lineNum = xanDurabilityTooltip.qTipDur:AddLine("|cFFFFFFFF"..v.slotName, v.slotItem, v.slotDurability, moneyString)
-				--xanDurabilityTooltip.qTipDur:SetLineTextColor(lineNum, color.r, color.g, color.b, 1)
-
-			end
-			if xanDurabilityTooltip.qTipDur then
-				xanDurabilityTooltip.qTipDur:Show()
-			end
-		end
-
-	end)
-
-	xanDurabilityTooltip:HookScript("OnHide", function(self)
-		if self.qTipDur then
-			LibQTip:Release(self.qTipDur)
-			self.qTipDur = nil
-		end
 	end)
 
 	addon:Show()
@@ -263,122 +289,180 @@ function addon:SetAddonScale(value, bypass)
 	addon:SetScale(XanDUR_DB.scale)
 end
 
-function addon:GetDurabilityInfo()
-	--https://wowpedia.fandom.com/wiki/Enum.InventoryType
+function addon:ScanDurabilityLight()
+	pEquipDura.min, pEquipDura.max = 0, 0
+	pBagDura.min, pBagDura.max = 0, 0
 
-	pEquipDura = { min=0, max=0};
-	pBagDura = { min=0, max=0};
-
-	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, "GameTooltipTemplate") end
-
-	equipCost = 0
-
-	self.moreDurInfo = {}
-	self.addSpace = false
-
-	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
-	local xGetContainerInfo = (C_Container and C_Container.GetContainerItemInfo) or GetContainerItemInfo
-	local xGetContainerItemDurability = (C_Container and C_Container.GetContainerItemDurability) or GetContainerItemDurability
-
-	for slotName, slotID in pairs(Enum.InventoryType) do
-		local hasItem, repairCost
-
-		--we can't use SetInventoryItem on retail to get the repair costs as it will return nil, you have to use the C_TooltipInfo namespace for everything 
-		if C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
-			hasItem = C_TooltipInfo.GetInventoryItem("player", slotID)
-			if hasItem then
-				repairCost = hasItem.repairCost
-			end
-		else
-			--the old way
-			hasItem, _, repairCost = tmpTip:SetInventoryItem("player", slotID)
-		end
-
+	-- Equipped items: use real inventory slot IDs (more correct and faster than Enum.InventoryType).
+	local firstSlot = _G.INVSLOT_FIRST_EQUIPPED or 1
+	local lastSlot = _G.INVSLOT_LAST_EQUIPPED or 19
+	for slotID = firstSlot, lastSlot do
 		local Minimum, Maximum = GetInventoryItemDurability(slotID)
-		local equipLoc = slotName
-
-		if hasItem and repairCost and repairCost > 0 then
-			local itemLink = GetInventoryItemLink("player", slotID)
-
-			if itemLink then
-				equipLoc = select(9, GetItemInfo(itemLink))
-				if equipLoc then equipLoc = _G[equipLoc] end
-				table.insert(self.moreDurInfo,  {slotName=equipLoc, slotItem=itemLink, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
-			else
-				local itemID = GetInventoryItemID("player", slotID) or "Unknown"
-				table.insert(self.moreDurInfo,  {slotName=equipLoc, slotItem="itemID:"..itemID, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
-			end
-
-			equipCost = equipCost + repairCost
-		end
-
 		if Minimum and Maximum then
 			pEquipDura.min = pEquipDura.min + Minimum
 			pEquipDura.max = pEquipDura.max + Maximum
 		end
 	end
 
-	bagCost = 0
-	for bag = 0, 4 do
-		for slot = 1, xGetNumSlots(bag) do
-			local repairCost
+	-- Bags
+	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+	local xGetContainerItemDurability = (C_Container and C_Container.GetContainerItemDurability) or GetContainerItemDurability
 
-			--we can't use SetBagItem on retail as it generates errors and causes problems with BattlePet Tooltip, since they don't have durability
-			if C_TooltipInfo and C_TooltipInfo.GetBagItem then
-				local data = C_TooltipInfo.GetBagItem(bag, slot)
-				if data then
-					repairCost = data.repairCost
-				end
-			else
-				--the old way
-				_, repairCost = tmpTip:SetBagItem(bag, slot)
-			end
-
+	ForEachBagIndex(function(bag)
+		local numSlots = xGetNumSlots and xGetNumSlots(bag)
+		if not numSlots or numSlots <= 0 then return end
+		for slot = 1, numSlots do
 			local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
-
-			if repairCost and repairCost > 0 then
-
-				local itemLink
-
-				if C_Container and C_Container.GetContainerItemInfo then
-					local containerInfo = xGetContainerInfo(bag, slot)
-					itemLink = containerInfo and containerInfo.hyperlink
-				else
-					itemLink = select(7, xGetContainerInfo(bag, slot))
-				end
-
-				if itemLink then
-					if not self.addSpace then
-						table.insert(self.moreDurInfo,  {slotName=string.rep(" ", 4),  slotItem=string.rep(" ", 4), slotDurability=string.rep(" ", 4), slotRepairCost=-1})
-						self.addSpace = true
-					end
-					table.insert(self.moreDurInfo,  {slotName=BACKPACK_TOOLTIP, slotItem=itemLink, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
-				else
-					if not self.addSpace then
-						table.insert(self.moreDurInfo,  {slotName=string.rep(" ", 4),  slotItem=string.rep(" ", 4), slotDurability=string.rep(" ", 4), slotRepairCost=-1})
-						self.addSpace = true
-					end
-					local itemID = GetContainerItemID(bag, slot) or "Unknown"
-					table.insert(self.moreDurInfo,  {slotName=BACKPACK_TOOLTIP, slotItem="itemID:"..itemID, slotDurability=Minimum.."/"..Maximum, slotRepairCost=repairCost})
-				end
-
-				bagCost = bagCost + repairCost
-			end
 			if Minimum and Maximum then
 				pBagDura.min = pBagDura.min + Minimum
 				pBagDura.max = pBagDura.max + Maximum
 			end
 		end
-	end
-	if bagCost < 0 then bagCost = 0 end
+	end)
 
+	self._durabilityDirty = false
+end
+
+function addon:ScanRepairDetails(includeDetails)
+	if not tmpTip then tmpTip = CreateFrame("GameTooltip", "XDTT", UIParent, "GameTooltipTemplate") end
+
+	equipCost, bagCost, totalCost = 0, 0, 0
+
+	self.moreDurInfo = self.moreDurInfo or {}
+	if includeDetails then
+		wipeTable(self.moreDurInfo)
+		self.addSpace = false
+	end
+
+	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+	local xGetContainerInfo = (C_Container and C_Container.GetContainerItemInfo) or GetContainerItemInfo
+	local xGetContainerItemDurability = (C_Container and C_Container.GetContainerItemDurability) or GetContainerItemDurability
+	local xGetContainerItemID = (C_Container and C_Container.GetContainerItemID) or GetContainerItemID
+
+	local function AddRow(slotName, slotItem, slotDurability, slotRepairCost)
+		if not includeDetails then return end
+		local idx = #self.moreDurInfo + 1
+		local row = self.moreDurInfo[idx]
+		if not row then
+			row = {}
+			self.moreDurInfo[idx] = row
+		end
+		row.slotName = slotName
+		row.slotItem = slotItem
+		row.slotDurability = slotDurability
+		row.slotRepairCost = slotRepairCost
+	end
+
+	-- Equipped items (repair costs can be expensive to compute on Retail, so only do it on-demand)
+	local firstSlot = _G.INVSLOT_FIRST_EQUIPPED or 1
+	local lastSlot = _G.INVSLOT_LAST_EQUIPPED or 19
+	for slotID = firstSlot, lastSlot do
+		local hasItem, repairCost
+
+		-- Retail: tooltip data API (returns a table).
+		if C_TooltipInfo and C_TooltipInfo.GetInventoryItem then
+			hasItem = C_TooltipInfo.GetInventoryItem("player", slotID)
+			repairCost = hasItem and hasItem.repairCost
+		else
+			-- Legacy: use a hidden tooltip.
+			hasItem, _, repairCost = tmpTip:SetInventoryItem("player", slotID)
+		end
+
+		local Minimum, Maximum = GetInventoryItemDurability(slotID)
+		if hasItem and repairCost and repairCost > 0 and Minimum and Maximum then
+			equipCost = equipCost + repairCost
+
+			if includeDetails then
+				local itemLink = GetInventoryItemLink("player", slotID)
+				local equipLoc = ""
+
+				if itemLink then
+					equipLoc = select(9, GetItemInfo(itemLink)) or ""
+					equipLoc = (equipLoc ~= "" and _G[equipLoc]) or equipLoc
+					AddRow(equipLoc, itemLink, Minimum .. "/" .. Maximum, repairCost)
+				else
+					local itemID = GetInventoryItemID("player", slotID) or "Unknown"
+					AddRow(equipLoc, "itemID:" .. itemID, Minimum .. "/" .. Maximum, repairCost)
+				end
+			end
+		end
+	end
+
+	-- Bag items
+	ForEachBagIndex(function(bag)
+		local numSlots = xGetNumSlots and xGetNumSlots(bag)
+		if not numSlots or numSlots <= 0 then return end
+
+		for slot = 1, numSlots do
+			local repairCost
+
+			-- Retail: avoid SetBagItem issues (battle pets etc.)
+			if C_TooltipInfo and C_TooltipInfo.GetBagItem then
+				local data = C_TooltipInfo.GetBagItem(bag, slot)
+				repairCost = data and data.repairCost
+			else
+				_, repairCost = tmpTip:SetBagItem(bag, slot)
+			end
+
+			if repairCost and repairCost > 0 then
+				local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
+				if Minimum and Maximum then
+					bagCost = bagCost + repairCost
+
+					if includeDetails then
+						local itemLink
+						if C_Container and C_Container.GetContainerItemInfo then
+							local containerInfo = xGetContainerInfo(bag, slot)
+							itemLink = containerInfo and containerInfo.hyperlink
+						else
+							itemLink = select(7, xGetContainerInfo(bag, slot))
+						end
+
+						if not self.addSpace then
+							AddRow(PAD4, PAD4, PAD4, -1)
+							self.addSpace = true
+						end
+
+						if itemLink then
+							AddRow(BACKPACK_TOOLTIP, itemLink, Minimum .. "/" .. Maximum, repairCost)
+						else
+							local itemID = (xGetContainerItemID and xGetContainerItemID(bag, slot)) or "Unknown"
+							AddRow(BACKPACK_TOOLTIP, "itemID:" .. itemID, Minimum .. "/" .. Maximum, repairCost)
+						end
+					end
+				end
+			end
+		end
+	end)
+
+	if bagCost < 0 then bagCost = 0 end
 	totalCost = equipCost + bagCost
+	self._repairDirty = false
+	self._repairDetailsMode = includeDetails and true or false
+end
+
+-- Backwards-compatible entrypoint (historically did both durability + repair cost).
+function addon:GetDurabilityInfo()
+	self:ScanDurabilityLight()
+	self:ScanRepairDetails(true)
 end
 
 function addon:UpdatePercent()
 	--only show current equipped durability not total
-	local tPer = floor(pEquipDura.min / pEquipDura.max * 100)
-	getglobal(ADDON_NAME.."Text"):SetText(addon:DurColor(tPer)..tPer.."%|r");
+	if self._durabilityDirty then
+		self:ScanDurabilityLight()
+	end
+
+	local tPer = 100
+	if pEquipDura.max and pEquipDura.max > 0 then
+		tPer = floor(pEquipDura.min / pEquipDura.max * 100)
+	end
+
+	if self.text then
+		self.text:SetText(addon:DurColor(tPer) .. tPer .. "%|r")
+	else
+		getglobal(ADDON_NAME.."Text"):SetText(addon:DurColor(tPer) .. tPer .. "%|r")
+	end
 end
 
 function addon:SaveLayout(frame)
@@ -466,14 +550,28 @@ end
 ------------------------------
 
 function addon:PLAYER_REGEN_ENABLED()
-	addon:GetDurabilityInfo()
-	addon:UpdatePercent()
+	self._durabilityDirty = true
+	self._repairDirty = true
+	self:RequestUpdate()
 end
 
 
 function addon:UPDATE_INVENTORY_DURABILITY()
-	addon:GetDurabilityInfo()
-	addon:UpdatePercent()
+	self._durabilityDirty = true
+	self._repairDirty = true
+	self:RequestUpdate()
+end
+
+function addon:PLAYER_EQUIPMENT_CHANGED()
+	self._durabilityDirty = true
+	self._repairDirty = true
+	self:RequestUpdate()
+end
+
+function addon:BAG_UPDATE_DELAYED()
+	self._durabilityDirty = true
+	self._repairDirty = true
+	self:RequestUpdate()
 end
 
 ------------------------
@@ -517,30 +615,51 @@ function addon:MERCHANT_SHOW()
 end
 
 ------------------------
+--      Updates       --
+------------------------
+
+function addon:RequestUpdate(delaySeconds)
+	delaySeconds = delaySeconds or 0.35
+
+	if not self._updateFrame then
+		self._updateFrame = CreateFrame("Frame")
+		self._updateFrame:Hide()
+		self._updateFrame:SetScript("OnUpdate", function(_, _)
+			if not addon._pendingUpdate then return end
+			if GetTime() < (addon._nextUpdateAt or 0) then return end
+
+			addon._pendingUpdate = false
+			addon._updateFrame:Hide()
+
+			if addon._durabilityDirty then
+				addon:ScanDurabilityLight()
+			end
+			addon:UpdatePercent()
+		end)
+	end
+
+	self._pendingUpdate = true
+	self._nextUpdateAt = (GetTime() + delaySeconds)
+	self._updateFrame:Show()
+end
+
+------------------------
 --      Tooltip!      --
 ------------------------
 
-function addon:GetTipAnchor(frame)
-	local x,y = frame:GetCenter()
-	if not x or not y then return "TOPLEFT", "BOTTOMLEFT" end
-	local hhalf = (x > UIParent:GetWidth()*2/3) and "RIGHT" or (x < UIParent:GetWidth()/3) and "LEFT" or ""
-	local vhalf = (y > UIParent:GetHeight()/2) and "TOP" or "BOTTOM"
-	return vhalf..hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP")..hhalf
-end
-
-function addon:SetSmartTipAnchor(frame, qTip)
+function addon:SetSmartTipAnchor(frame, tooltipFrame)
     local x, y = frame:GetCenter()
 
-	qTip:ClearAllPoints()
-	qTip:SetClampedToScreen(true)
+	tooltipFrame:ClearAllPoints()
+	tooltipFrame:SetClampedToScreen(true)
 
     if not x or not y then
-        qTip:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
+        tooltipFrame:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT")
 		return
     end
 
     local hhalf = (x > UIParent:GetWidth() * 2 / 3) and "RIGHT" or (x < UIParent:GetWidth() / 3) and "LEFT" or ""
     local vhalf = (y > UIParent:GetHeight() / 2) and "TOP" or "BOTTOM"
 
-	qTip:SetPoint(vhalf .. hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP") .. hhalf)
+	tooltipFrame:SetPoint(vhalf .. hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP") .. hhalf)
 end

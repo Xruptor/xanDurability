@@ -1,7 +1,8 @@
 local ADDON_NAME, addon = ...
 
-local L = LibStub("AceLocale-3.0"):NewLocale(ADDON_NAME, "zhCN")
-if not L then return end
+addon.locales = addon.locales or {}
+local L = {}
+addon.locales["zhCN"] = L
 
 L.SlashBG = "背景"
 L.SlashBGOn = "xanDurability: 背景 [|cFF99CC33显示|r]"
