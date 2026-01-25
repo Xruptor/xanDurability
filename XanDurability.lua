@@ -9,28 +9,12 @@ local ADDON_NAME, private = ...
 if not _G[ADDON_NAME] then
 	_G[ADDON_NAME] = CreateFrame("Frame", ADDON_NAME, UIParent, BackdropTemplateMixin and "BackdropTemplate")
 end
-addon = _G[ADDON_NAME]
+local addon = _G[ADDON_NAME]
 
 -- Locale files load with the addon's private table (2nd return from "...").
--- The main addon frame is stored in _G[ADDON_NAME]. Bridge the locales over.
 addon.private = private
-if private and type(private) == "table" and private.locales and type(private.locales) == "table" then
-	addon.locales = private.locales
-else
-	addon.locales = addon.locales or {}
-end
-local function ResolveLocale()
-	local current = (GetLocale and GetLocale()) or "enUS"
-	local base = addon.locales["enUS"] or {}
-	local chosen = addon.locales[current] or {}
-	if chosen ~= base and getmetatable(chosen) == nil then
-		setmetatable(chosen, { __index = base })
-	end
-	return chosen, current
-end
-
-local L = addon.L or ResolveLocale()
-addon.L = L
+addon.L = (private and private.L) or addon.L or {}
+local L = addon.L
 
 local PAD4 = "    "
 

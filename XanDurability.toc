@@ -3,7 +3,7 @@
 ## Notes: A small window that displays the total current armour durability.
 ## Notes-zhCN: 独立窗口显示当前角色的装备耐久度。
 ## Author: Xruptor
-## Version: 6.12
+## Version: 6.13
 ## IconTexture: Interface\Icons\Trade_Blacksmithing
 ## X-Curse-Project-ID: 28561
 ## X-WoWI-ID: 16915
@@ -12,6 +12,7 @@
 ## SavedVariables: XanDUR_Opt
 ## SavedVariablesPerCharacter: XanDUR_DB
 
+locale\locales.lua
 locale\enUS.lua
 locale\zhCN.lua
 locale\ruRU.lua

@@ -1,8 +1,6 @@
-local ADDON_NAME, addon = ...
-
-addon.locales = addon.locales or {}
-local L = {}
-addon.locales["enUS"] = L
+local ADDON_NAME, private = ...
+local L = private:NewLocale("enUS", true)
+if not L then return end
 
 L.SlashBG = "bg"
 L.SlashBGOn = "xanDurability: Background is now [|cFF99CC33SHOWN|r]"

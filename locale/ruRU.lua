@@ -1,8 +1,6 @@
-local ADDON_NAME, addon = ...
-
-addon.locales = addon.locales or {}
-local L = {}
-addon.locales["ruRU"] = L
+local ADDON_NAME, private = ...
+local L = private:NewLocale("ruRU")
+if not L then return end
 -- Translator ZamestoTV
 L.SlashBG = "bg"
 L.SlashBGOn = "xanDurability: Фон теперь [|cFF99CC33ПОКАЗАН|r]"
