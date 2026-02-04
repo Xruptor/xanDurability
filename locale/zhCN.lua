@@ -13,8 +13,8 @@ L.SlashResetAlert = "xanDurability: 位置已重置！"
 
 L.SlashScale = "比例"
 L.SlashScaleSet = "xanDurability: 比例设置为 [|cFF20ff20%s|r]"
--- L.SlashScaleSetInvalid = "数值无效！数字必须是 [0.5 - 5]。(0.5, 1, 3, 4.6, 等..)"
--- L.SlashScaleInfo = "设置 XanDurability 耐久度窗口的比例 (0.5 - 5)."
+L.SlashScaleSetInvalid = "数值无效！数字必须是 [0.5 - 5]。(0.5, 1, 3, 4.6, 等..)"
+L.SlashScaleInfo = "设置 XanDurability 耐久度窗口的比例 (0.5 - 5)."
 L.SlashScaleText = "耐久度窗口比例"
 
 L.SlashAutoRepair = "自动修理"

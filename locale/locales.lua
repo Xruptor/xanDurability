@@ -3,11 +3,17 @@ if type(private) ~= "table" then
 	private = {}
 end
 
+local current = (type(_G.GetLocale) == "function" and _G.GetLocale()) or "enUS"
+if current == "enGB" then
+	current = "enUS"
+end
+
 private._locales = private._locales or {
-	current = (type(_G.GetLocale) == "function" and _G.GetLocale()) or "enUS",
+	current = current,
 	default = nil,
 	locales = {},
 }
+private._locales.current = current
 
 function private:NewLocale(locale, isDefault)
 	if type(locale) ~= "string" or locale == "" then return nil end
@@ -40,4 +46,3 @@ private.L = private.L or setmetatable({}, {
 		return (private:GetLocale() or {})[key]
 	end,
 })
-
