@@ -9,6 +9,28 @@ local configFrame = addon.configFrame
 
 local L = addon.L
 
+local floor = math.floor
+
+local function GetMetadata(field)
+	if C_AddOns and C_AddOns.GetAddOnMetadata then
+		return C_AddOns.GetAddOnMetadata(ADDON_NAME, field)
+	end
+	if GetAddOnMetadata then
+		return GetAddOnMetadata(ADDON_NAME, field)
+	end
+	return nil
+end
+
+local function Clamp(value, minVal, maxVal)
+	if value < minVal then return minVal end
+	if value > maxVal then return maxVal end
+	return value
+end
+
+local function RoundToStep(value, step)
+	return floor(value / step + 0.5) * step
+end
+
 local lastObject
 local function addConfigEntry(objEntry, adjustX, adjustY)
 	
@@ -28,7 +50,10 @@ local function createCheckbutton(parentFrame, displayText)
 	chkBoxIndex = chkBoxIndex + 1
 	
 	local checkbutton = CreateFrame("CheckButton", ADDON_NAME.."_config_chkbtn_" .. chkBoxIndex, parentFrame, "ChatConfigCheckButtonTemplate")
-	getglobal(checkbutton:GetName() .. 'Text'):SetText(" " .. (displayText or ""))
+	local label = _G[checkbutton:GetName() .. "Text"]
+	if label then
+		label:SetText(" " .. (displayText or ""))
+	end
 	
 	return checkbutton
 end
@@ -89,6 +114,19 @@ local function createSlider(parentFrame, displayText, minVal, maxVal, setStep)
 	return slider
 end
 
+local function BindToggle(button, tableRef, key, onMsg, offMsg, onToggle)
+	button:SetScript("OnShow", function() button:SetChecked(tableRef[key]) end)
+	button.func = function()
+		local newValue = not tableRef[key]
+		tableRef[key] = newValue
+		DEFAULT_CHAT_FRAME:AddMessage(newValue and onMsg or offMsg)
+		if onToggle then
+			onToggle(newValue)
+		end
+	end
+	button:SetScript("OnClick", button.func)
+end
+
 local function LoadAboutFrame()
 
 	--Code inspired from tekKonfigAboutPanel
@@ -97,12 +135,7 @@ local function LoadAboutFrame()
 	about:Hide()
 	
     local fields = {"Version", "Author"}
-	local notes
-	if C_AddOns and C_AddOns.GetAddOnMetadata then
-		notes = C_AddOns.GetAddOnMetadata(ADDON_NAME, "Notes")
-	elseif GetAddOnMetadata then
-		notes = GetAddOnMetadata(ADDON_NAME, "Notes")
-	end
+	local notes = GetMetadata("Notes")
 
     local title = about:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 
@@ -119,13 +152,8 @@ local function LoadAboutFrame()
 	subtitle:SetText(notes)
 
 	local anchor
-	for _,field in pairs(fields) do
-		local val
-		if C_AddOns and C_AddOns.GetAddOnMetadata then
-			val = C_AddOns.GetAddOnMetadata(ADDON_NAME, field)
-		elseif GetAddOnMetadata then
-			val = GetAddOnMetadata(ADDON_NAME, field)
-		end
+	for _,field in ipairs(fields) do
+		local val = GetMetadata(field)
 		if val then
 			local title = about:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
 			title:SetWidth(75)
@@ -161,22 +189,9 @@ function configFrame:EnableConfig()
 	
 	--bg shown
 	local btnBG = createCheckbutton(addon.aboutPanel, L.SlashBGInfo)
-	btnBG:SetScript("OnShow", function() btnBG:SetChecked(XanDUR_DB.bgShown) end)
-	btnBG.func = function(slashSwitch)
-		local value = XanDUR_DB.bgShown
-		if not slashSwitch then value = XanDUR_DB.bgShown end
-
-		if value then
-			XanDUR_DB.bgShown = false
-			DEFAULT_CHAT_FRAME:AddMessage(L.SlashBGOff)
-		else
-			XanDUR_DB.bgShown = true
-			DEFAULT_CHAT_FRAME:AddMessage(L.SlashBGOn)
-		end
-		
+	BindToggle(btnBG, XanDUR_DB, "bgShown", L.SlashBGOn, L.SlashBGOff, function()
 		addon:BackgroundToggle()
-	end
-	btnBG:SetScript("OnClick", btnBG.func)
+	end)
 	
 	addConfigEntry(btnBG, 0, -20)
 	addon.aboutPanel.btnBG = btnBG
@@ -200,14 +215,11 @@ function configFrame:EnableConfig()
 		sliderScale.currVal:SetText("("..XanDUR_DB.scale..")")
 	end)
 	sliderScale.sliderFunc = function(self, value)
-		value = math.floor(value * 10) / 10
-		if value < 0.5 then value = 0.5 end --always make sure we are 0.5 as the highest zero.  Anything lower will make the frame dissapear
-		if value > 5 then value = 5 end --nothing bigger than this
+		value = Clamp(RoundToStep(value, 0.1), 0.5, 5)
 		sliderScale.currVal:SetText("("..value..")")
-		sliderScale:SetValue(value)
 	end
 	sliderScale.sliderMouseUp = function(self, button)
-		local value = math.floor(self:GetValue() * 10) / 10
+		local value = Clamp(RoundToStep(self:GetValue(), 0.1), 0.5, 5)
 		addon:SetAddonScale(value)
 	end
 	sliderScale:SetScript("OnValueChanged", sliderScale.sliderFunc)
@@ -217,60 +229,21 @@ function configFrame:EnableConfig()
 	addon.aboutPanel.sliderScale = sliderScale
 
 	local btnAutoRepair = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairInfo)
-	btnAutoRepair:SetScript("OnShow", function() btnAutoRepair:SetChecked(XanDUR_Opt.autoRepair) end)
-	btnAutoRepair.func = function(slashSwitch)
-		local value = XanDUR_Opt.autoRepair
-		if not slashSwitch then value = XanDUR_Opt.autoRepair end
-
-		if value then
-			XanDUR_Opt.autoRepair = false
-			DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairOff)
-		else
-			XanDUR_Opt.autoRepair = true
-			DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairOn)
-		end
-	end
-	btnAutoRepair:SetScript("OnClick", btnAutoRepair.func)
+	BindToggle(btnAutoRepair, XanDUR_Opt, "autoRepair", L.SlashAutoRepairOn, L.SlashAutoRepairOff)
 	
 	addConfigEntry(btnAutoRepair, 0, -40)
 	addon.aboutPanel.btnAutoRepair = btnAutoRepair
 	
 	if not addon.IsClassic then
 		local btnAutoRepairGuild = createCheckbutton(addon.aboutPanel, L.SlashAutoRepairGuildInfo)
-		btnAutoRepairGuild:SetScript("OnShow", function() btnAutoRepairGuild:SetChecked(XanDUR_Opt.autoRepairUseGuild) end)
-		btnAutoRepairGuild.func = function(slashSwitch)
-			local value = XanDUR_Opt.autoRepairUseGuild
-			if not slashSwitch then value = XanDUR_Opt.autoRepairUseGuild end
-
-			if value then
-				XanDUR_Opt.autoRepairUseGuild = false
-				DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOff)
-			else
-				XanDUR_Opt.autoRepairUseGuild = true
-				DEFAULT_CHAT_FRAME:AddMessage(L.SlashAutoRepairGuildOn)
-			end
-		end
-		btnAutoRepairGuild:SetScript("OnClick", btnAutoRepairGuild.func)
+		BindToggle(btnAutoRepairGuild, XanDUR_Opt, "autoRepairUseGuild", L.SlashAutoRepairGuildOn, L.SlashAutoRepairGuildOff)
 		
 		addConfigEntry(btnAutoRepairGuild, 0, -20)
 		addon.aboutPanel.btnAutoRepairGuild = btnAutoRepairGuild
 	end
 	
 	local btnShowMoreDetails = createCheckbutton(addon.aboutPanel, L.ShowMoreDetails)
-	btnShowMoreDetails:SetScript("OnShow", function() btnShowMoreDetails:SetChecked(XanDUR_Opt.ShowMoreDetails) end)
-	btnShowMoreDetails.func = function(slashSwitch)
-		local value = XanDUR_Opt.ShowMoreDetails
-		if not slashSwitch then value = XanDUR_Opt.ShowMoreDetails end
-
-		if value then
-			XanDUR_Opt.ShowMoreDetails = false
-			DEFAULT_CHAT_FRAME:AddMessage(L.ShowMoreDetailsOff)
-		else
-			XanDUR_Opt.ShowMoreDetails = true
-			DEFAULT_CHAT_FRAME:AddMessage(L.ShowMoreDetailsOn)
-		end
-	end
-	btnShowMoreDetails:SetScript("OnClick", btnShowMoreDetails.func)
+	BindToggle(btnShowMoreDetails, XanDUR_Opt, "ShowMoreDetails", L.ShowMoreDetailsOn, L.ShowMoreDetailsOff)
 	
 	addConfigEntry(btnShowMoreDetails, 0, -20)
 	addon.aboutPanel.btnShowMoreDetails = btnShowMoreDetails

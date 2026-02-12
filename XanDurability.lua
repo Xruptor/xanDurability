@@ -16,11 +16,10 @@ addon.private = private
 addon.L = (private and private.L) or addon.L or {}
 local L = addon.L
 
-local PAD4 = "    "
+local floor = math.floor
+local min = math.min
 
-local wipeTable = _G.wipe or function(t)
-	for k in pairs(t) do t[k] = nil end
-end
+local PAD4 = "    "
 
 local WOW_PROJECT_ID = _G.WOW_PROJECT_ID
 local WOW_PROJECT_MAINLINE = _G.WOW_PROJECT_MAINLINE
@@ -32,6 +31,15 @@ addon.IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 --BSYC.IsTBC_C = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 addon.IsWLK_C = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+
+local BACKDROP_INFO = {
+	bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	tile = true,
+	tileSize = 32,
+	edgeSize = 16,
+	insets = { left = 5, right = 5, top = 5, bottom = 5 },
+}
 
 
 addon:RegisterEvent("ADDON_LOADED")
@@ -68,19 +76,14 @@ local pBagDura = { min=0, max=0 }
 local xanDurabilityTooltip = CreateFrame("GameTooltip", "xanDurabilityTooltip", UIParent, "GameTooltipTemplate")
 local tmpTip
 
-local function GetNumBagSlots()
-	return (_G.NUM_BAG_SLOTS ~= nil and _G.NUM_BAG_SLOTS) or 4
+local function Clamp(value, minVal, maxVal)
+	if value < minVal then return minVal end
+	if value > maxVal then return maxVal end
+	return value
 end
 
-local function ForEachBagIndex(callback)
-	for bag = 0, GetNumBagSlots() do
-		callback(bag)
-	end
-
-	-- Retail reagent bag (avoid hard-failing on Classic)
-	if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag ~= nil then
-		callback(Enum.BagIndex.ReagentBag)
-	end
+local function GetNumBagSlots()
+	return (_G.NUM_BAG_SLOTS ~= nil and _G.NUM_BAG_SLOTS) or 4
 end
 
 ----------------------
@@ -91,11 +94,18 @@ function addon:EnableAddon()
 
 	if not XanDUR_DB then XanDUR_DB = {} end
 	if not XanDUR_Opt then XanDUR_Opt = {} end
-	if XanDUR_DB.bgShown == nil then XanDUR_DB.bgShown = true end
-	if XanDUR_DB.scale == nil then XanDUR_DB.scale = 1 end
-	if XanDUR_Opt.autoRepair == nil then XanDUR_Opt.autoRepair = true end
-	if XanDUR_Opt.autoRepairUseGuild == nil then XanDUR_Opt.autoRepairUseGuild = false end
-	if XanDUR_Opt.ShowMoreDetails == nil then XanDUR_Opt.ShowMoreDetails = true end
+
+	local function SetDefault(tbl, key, value)
+		if tbl[key] == nil then
+			tbl[key] = value
+		end
+	end
+
+	SetDefault(XanDUR_DB, "bgShown", true)
+	SetDefault(XanDUR_DB, "scale", 1)
+	SetDefault(XanDUR_Opt, "autoRepair", true)
+	SetDefault(XanDUR_Opt, "autoRepairUseGuild", false)
+	SetDefault(XanDUR_Opt, "ShowMoreDetails", true)
 
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
@@ -106,7 +116,7 @@ function addon:EnableAddon()
 	self:RegisterEvent("BAG_UPDATE_DELAYED")
 	self:RegisterEvent("MERCHANT_SHOW")
 
-	SLASH_XANDURABILITY1 = "/xdu";
+	SLASH_XANDURABILITY1 = "/xdu"
 	SlashCmdList["XANDURABILITY"] = function()
 		if Settings then
 			Settings.OpenToCategory("xanDurability")
@@ -152,12 +162,7 @@ function addon:CreateDURFrame()
 	addon:SetAddonScale(XanDUR_DB.scale, true)
 
 	if XanDUR_DB.bgShown then
-		addon:SetBackdrop( {
-			bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground";
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border";
-			tile = true; tileSize = 32; edgeSize = 16;
-			insets = { left = 5; right = 5; top = 5; bottom = 5; };
-		} );
+		addon:SetBackdrop(BACKDROP_INFO)
 		addon:SetBackdropBorderColor(0.5, 0.5, 0.5);
 		addon:SetBackdropColor(0.5, 0.5, 0.5, 0.6)
 	else
@@ -215,13 +220,15 @@ function addon:CreateDURFrame()
 		addon:SetSmartTipAnchor(self, xanDurabilityTooltip)
 		xanDurabilityTooltip:ClearLines()
 
-		local cP = (pEquipDura.max > 0 and floor(pEquipDura.min / pEquipDura.max * 100)) or 100
-		local bP = (pBagDura.max > 0 and floor(pBagDura.min / pBagDura.max * 100)) or 100
-		local tP = ((pEquipDura.max + pBagDura.max) > 0 and floor( (pEquipDura.min + pBagDura.min) / (pEquipDura.max + pBagDura.max) * 100)) or 100
-
-		if cP > 100 then cP = 100 end
-		if bP > 100 then bP = 100 end
-		if tP > 100 then tP = 100 end
+		local function CalcPercent(cur, maxVal)
+			if maxVal and maxVal > 0 then
+				return Clamp(floor((cur / maxVal) * 100), 0, 100)
+			end
+			return 100
+		end
+		local cP = CalcPercent(pEquipDura.min, pEquipDura.max)
+		local bP = CalcPercent(pBagDura.min, pBagDura.max)
+		local tP = CalcPercent(pEquipDura.min + pBagDura.min, pEquipDura.max + pBagDura.max)
 
 		xanDurabilityTooltip:AddLine(ADDON_NAME)
 		xanDurabilityTooltip:AddLine(L.TooltipDragInfo, 64/255, 224/255, 208/255)
@@ -262,8 +269,7 @@ end
 
 function addon:SetAddonScale(value, bypass)
 	--fix this in case it's ever smaller than   
-	if value < 0.5 then value = 0.5 end --anything smaller and it would vanish  
-	if value > 5 then value = 5 end --WAY too big  
+	value = Clamp(value or 1, 0.5, 5)
 
 	XanDUR_DB.scale = value
 
@@ -292,17 +298,33 @@ function addon:ScanDurabilityLight()
 	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
 	local xGetContainerItemDurability = (C_Container and C_Container.GetContainerItemDurability) or GetContainerItemDurability
 
-	ForEachBagIndex(function(bag)
+	for bag = 0, GetNumBagSlots() do
 		local numSlots = xGetNumSlots and xGetNumSlots(bag)
-		if not numSlots or numSlots <= 0 then return end
-		for slot = 1, numSlots do
-			local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
-			if Minimum and Maximum then
-				pBagDura.min = pBagDura.min + Minimum
-				pBagDura.max = pBagDura.max + Maximum
+		if numSlots and numSlots > 0 then
+			for slot = 1, numSlots do
+				local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
+				if Minimum and Maximum then
+					pBagDura.min = pBagDura.min + Minimum
+					pBagDura.max = pBagDura.max + Maximum
+				end
 			end
 		end
-	end)
+	end
+
+	-- Retail reagent bag (avoid hard-failing on Classic)
+	if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag ~= nil then
+		local bag = Enum.BagIndex.ReagentBag
+		local numSlots = xGetNumSlots and xGetNumSlots(bag)
+		if numSlots and numSlots > 0 then
+			for slot = 1, numSlots do
+				local Minimum, Maximum = xGetContainerItemDurability(bag, slot)
+				if Minimum and Maximum then
+					pBagDura.min = pBagDura.min + Minimum
+					pBagDura.max = pBagDura.max + Maximum
+				end
+			end
+		end
+	end
 
 	self._durabilityDirty = false
 end
@@ -312,10 +334,12 @@ function addon:ScanRepairDetails(includeDetails)
 
 	equipCost, bagCost, totalCost = 0, 0, 0
 
-	self.moreDurInfo = self.moreDurInfo or {}
+	local rows
+	local rowCount = 0
+	local addSpace = false
 	if includeDetails then
-		wipeTable(self.moreDurInfo)
-		self.addSpace = false
+		self.moreDurInfo = self.moreDurInfo or {}
+		rows = self.moreDurInfo
 	end
 
 	local xGetNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
@@ -325,15 +349,15 @@ function addon:ScanRepairDetails(includeDetails)
 
 	local function AddRow(slotName, slotItem, slotDurability, slotRepairCost)
 		if not includeDetails then return end
-		local idx = #self.moreDurInfo + 1
-		local row = self.moreDurInfo[idx]
+		rowCount = rowCount + 1
+		local row = rows[rowCount]
 		if not row then
 			row = {}
-			self.moreDurInfo[idx] = row
+			rows[rowCount] = row
 		end
-		row.slotName = slotName
-		row.slotItem = slotItem
-		row.slotDurability = slotDurability
+		row.slotName = slotName or ""
+		row.slotItem = slotItem or ""
+		row.slotDurability = slotDurability or ""
 		row.slotRepairCost = slotRepairCost
 	end
 
@@ -373,7 +397,7 @@ function addon:ScanRepairDetails(includeDetails)
 	end
 
 	-- Bag items
-	ForEachBagIndex(function(bag)
+	local function ScanBag(bag)
 		local numSlots = xGetNumSlots and xGetNumSlots(bag)
 		if not numSlots or numSlots <= 0 then return end
 
@@ -402,9 +426,9 @@ function addon:ScanRepairDetails(includeDetails)
 							itemLink = select(7, xGetContainerInfo(bag, slot))
 						end
 
-						if not self.addSpace then
+						if not addSpace then
 							AddRow(PAD4, PAD4, PAD4, -1)
-							self.addSpace = true
+							addSpace = true
 						end
 
 						if itemLink then
@@ -417,7 +441,21 @@ function addon:ScanRepairDetails(includeDetails)
 				end
 			end
 		end
-	end)
+	end
+
+	for bag = 0, GetNumBagSlots() do
+		ScanBag(bag)
+	end
+
+	if Enum and Enum.BagIndex and Enum.BagIndex.ReagentBag ~= nil then
+		ScanBag(Enum.BagIndex.ReagentBag)
+	end
+
+	if includeDetails then
+		for i = rowCount + 1, #rows do
+			rows[i] = nil
+		end
+	end
 
 	if bagCost < 0 then bagCost = 0 end
 	totalCost = equipCost + bagCost
@@ -439,13 +477,12 @@ function addon:UpdatePercent()
 
 	local tPer = 100
 	if pEquipDura.max and pEquipDura.max > 0 then
-		tPer = floor(pEquipDura.min / pEquipDura.max * 100)
+		tPer = Clamp(floor(pEquipDura.min / pEquipDura.max * 100), 0, 100)
 	end
 
-	if self.text then
-		self.text:SetText(addon:DurColor(tPer) .. tPer .. "%|r")
-	else
-		getglobal(ADDON_NAME.."Text"):SetText(addon:DurColor(tPer) .. tPer .. "%|r")
+	local textObj = self.text or _G[ADDON_NAME .. "Text"]
+	if textObj then
+		textObj:SetText(addon:DurColor(tPer) .. tPer .. "%|r")
 	end
 end
 
@@ -454,17 +491,15 @@ function addon:SaveLayout(frame)
 	if not _G[frame] then return end
 	if not XanDUR_DB then XanDUR_DB = {} end
 
-	local opt = XanDUR_DB[frame] or nil
-
+	local opt = XanDUR_DB[frame]
 	if not opt then
-		XanDUR_DB[frame] = {
-			["point"] = "CENTER",
-			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
+		opt = {
+			point = "CENTER",
+			relativePoint = "CENTER",
+			xOfs = 0,
+			yOfs = 0,
 		}
-		opt = XanDUR_DB[frame]
-		return
+		XanDUR_DB[frame] = opt
 	end
 
 	local point, relativeTo, relativePoint, xOfs, yOfs = _G[frame]:GetPoint()
@@ -479,16 +514,15 @@ function addon:RestoreLayout(frame)
 	if not _G[frame] then return end
 	if not XanDUR_DB then XanDUR_DB = {} end
 
-	local opt = XanDUR_DB[frame] or nil
-
+	local opt = XanDUR_DB[frame]
 	if not opt then
-		XanDUR_DB[frame] = {
-			["point"] = "CENTER",
-			["relativePoint"] = "CENTER",
-			["xOfs"] = 0,
-			["yOfs"] = 0,
+		opt = {
+			point = "CENTER",
+			relativePoint = "CENTER",
+			xOfs = 0,
+			yOfs = 0,
 		}
-		opt = XanDUR_DB[frame]
+		XanDUR_DB[frame] = opt
 	end
 
 	_G[frame]:ClearAllPoints()
@@ -497,12 +531,7 @@ end
 
 function addon:BackgroundToggle()
 	if XanDUR_DB.bgShown then
-		addon:SetBackdrop( {
-			bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground";
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border";
-			tile = true; tileSize = 32; edgeSize = 16;
-			insets = { left = 5; right = 5; top = 5; bottom = 5; };
-		} );
+		addon:SetBackdrop(BACKDROP_INFO)
 		addon:SetBackdropBorderColor(0.5, 0.5, 0.5);
 		addon:SetBackdropColor(0.5, 0.5, 0.5, 0.6)
 	else
@@ -511,52 +540,38 @@ function addon:BackgroundToggle()
 end
 
 function addon:DurColor(percent)
-
-	local tmpString = ""
-
 	if percent >= 80 then
-		tmpString = "|cff00FF00"
-	elseif percent >= 60 then
-		tmpString = "|cff99FF00"
-	elseif percent >= 40 then
-		tmpString = "|cffFFFF00"
-	elseif percent >= 20 then
-		tmpString = "|cffFF9900"
-	elseif percent >= 0 then
-		tmpString = "|cffFF2000"
+		return "|cff00FF00"
 	end
-
-	return tmpString;
+	if percent >= 60 then
+		return "|cff99FF00"
+	end
+	if percent >= 40 then
+		return "|cffFFFF00"
+	end
+	if percent >= 20 then
+		return "|cffFF9900"
+	end
+	if percent >= 0 then
+		return "|cffFF2000"
+	end
+	return ""
 end
 
 ------------------------------
 --      Event Handlers      --
 ------------------------------
 
-function addon:PLAYER_REGEN_ENABLED()
+function addon:MarkDirty()
 	self._durabilityDirty = true
 	self._repairDirty = true
 	self:RequestUpdate()
 end
 
-
-function addon:UPDATE_INVENTORY_DURABILITY()
-	self._durabilityDirty = true
-	self._repairDirty = true
-	self:RequestUpdate()
-end
-
-function addon:PLAYER_EQUIPMENT_CHANGED()
-	self._durabilityDirty = true
-	self._repairDirty = true
-	self:RequestUpdate()
-end
-
-function addon:BAG_UPDATE_DELAYED()
-	self._durabilityDirty = true
-	self._repairDirty = true
-	self:RequestUpdate()
-end
+addon.PLAYER_REGEN_ENABLED = addon.MarkDirty
+addon.UPDATE_INVENTORY_DURABILITY = addon.MarkDirty
+addon.PLAYER_EQUIPMENT_CHANGED = addon.MarkDirty
+addon.BAG_UPDATE_DELAYED = addon.MarkDirty
 
 ------------------------
 --      Auto Repair!      --
@@ -642,8 +657,10 @@ function addon:SetSmartTipAnchor(frame, tooltipFrame)
 		return
     end
 
-    local hhalf = (x > UIParent:GetWidth() * 2 / 3) and "RIGHT" or (x < UIParent:GetWidth() / 3) and "LEFT" or ""
-    local vhalf = (y > UIParent:GetHeight() / 2) and "TOP" or "BOTTOM"
+	local parentWidth = UIParent:GetWidth()
+	local parentHeight = UIParent:GetHeight()
+    local hhalf = (x > parentWidth * 2 / 3) and "RIGHT" or (x < parentWidth / 3) and "LEFT" or ""
+    local vhalf = (y > parentHeight / 2) and "TOP" or "BOTTOM"
 
 	tooltipFrame:SetPoint(vhalf .. hhalf, frame, (vhalf == "TOP" and "BOTTOM" or "TOP") .. hhalf)
 end
