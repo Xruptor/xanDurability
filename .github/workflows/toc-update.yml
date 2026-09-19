@@ -262,16 +262,23 @@ jobs:
         env:
           IFACE_LINE: ${{ steps.collect.outputs.iface_line }}
           NUMS: ${{ steps.collect.outputs.nums }}
+          # manual=true forces a version bump + release dispatch even if interface
+          # numbers didn't change — used to re-sync addons that got out of whack.
+          FORCE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: |
           python3 - <<'PYEOF'
           import re, glob, os, sys
 
           new_line = os.environ["IFACE_LINE"]
           new_nums = set(int(x) for x in os.environ["NUMS"].split(",") if x)
+          force_release = os.environ.get("FORCE_RELEASE", "false").strip().lower() == "true"
 
           if not new_nums:
               print("ERROR: no interface numbers — aborting", file=sys.stderr)
               sys.exit(1)
+
+          if force_release:
+              print("*** Manual run — version bump and release will fire even if TOC unchanged ***")
 
           def flavor_group(n):
               if   120000 <= n <= 129999: return "retail"
@@ -330,6 +337,8 @@ jobs:
 
           any_changed = False
           new_version = None
+          main_toc_text = None
+          main_toc_path = None
 
           for toc_path in glob.glob("**/*.toc", recursive=True):
               toc_filename = os.path.basename(toc_path)
@@ -355,8 +364,11 @@ jobs:
               else:
                   print(f"Interface no change: {toc_path}")
 
-              # --- Bump ## Version: (main TOC only, and only if interface changed) ---
-              if is_main and iface_changed:
+              # --- Bump ## Version: (main TOC only) ---
+              # Cron: only if interface changed.
+              # Manual: always, even if interface was already current.
+              should_bump = is_main and (iface_changed or force_release)
+              if should_bump:
                   ver_match = re.search(r"^## Version:\s*(.+)", text, flags=re.MULTILINE)
                   if ver_match:
                       old_ver = ver_match.group(1).strip()
@@ -366,12 +378,13 @@ jobs:
                           new_ver_line = f"## Version: {bumped}"
                           text = text[:ver_match.start()] + new_ver_line + text[ver_match.end():]
                           print(f"Version bumped in {toc_path}: {old_ver} → {bumped}")
+                          any_changed = True  # ensure commit step runs
                       else:
                           print(f"  WARNING: could not parse version '{old_ver}' — skipping version bump")
                   else:
                       print(f"  WARNING: no ## Version: line found in {toc_path} — skipping version bump")
 
-              # Write updated file if anything changed
+              # Write updated file if anything changed for this TOC
               if iface_changed or (is_main and new_version):
                   open(toc_path, "w", encoding="utf-8").write(text)
 
@@ -380,7 +393,7 @@ jobs:
               f.write(f"new_version={new_version if new_version else ''}\n")
           PYEOF
 
-      - name: Commit, tag, and push
+      - name: Commit and push
         if: steps.update.outputs.changed == 'true'
         env:
           NEW_VERSION: ${{ steps.update.outputs.new_version }}
@@ -388,16 +401,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add "*.toc"
-
           if [ -n "$NEW_VERSION" ]; then
             git commit -m "chore: update TOC interface numbers → v${NEW_VERSION}"
-            git tag "v${NEW_VERSION}"
-            git push
-            git push origin "v${NEW_VERSION}"
-            echo "Tagged and pushed v${NEW_VERSION} — release.yml will now package and publish."
           else
-            # Interface numbers changed but version bump failed (unparseable version line)
             git commit -m "chore: update TOC interface numbers"
-            git push
-            echo "WARNING: version bump failed — committed without tag. Release NOT triggered."
           fi
+          git push
+
+      - name: Dispatch release workflow
+        if: steps.update.outputs.changed == 'true' && steps.update.outputs.new_version != ''
+        env:
+          NEW_VERSION: ${{ steps.update.outputs.new_version }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          # Dispatch release.yml — it will create the git tag itself before
+          # running the packager, so the packager sees the correct version.
+          gh workflow run release.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$GITHUB_REF_NAME" \
+            --field version="v${NEW_VERSION}"
+          echo "Dispatched release.yml for v${NEW_VERSION}."
