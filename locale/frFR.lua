@@ -31,6 +31,10 @@ L.ShowMoreDetails = "Afficher le détail des coûts de réparation par objet et 
 L.ShowMoreDetailsOn = "xanDurability: Le détail des objets est [|cFF99CC33ACTIVÉ|r]"
 L.ShowMoreDetailsOff = "xanDurability: Le détail des objets est [|cFF99CC33DÉSACTIVÉ|r]"
 
+L.SlashHideCombatInfo = "Masquer la fenêtre en combat."
+L.SlashHideCombatOn = "xanDurability: Masquer en combat est [|cFF99CC33ACTIVÉ|r]"
+L.SlashHideCombatOff = "xanDurability: Masquer en combat est [|cFF99CC33DÉSACTIVÉ|r]"
+
 L.RepairedFromGuild = "Réparé avec les fonds de guilde."
 L.NoGuildFunds = "Fonds de guilde insuffisants pour réparer."
 L.RepairedAll = "Tous les objets ont été réparés."

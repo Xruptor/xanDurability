@@ -31,6 +31,10 @@ L.ShowMoreDetails = "Show repair cost breakdown per item and location."
 L.ShowMoreDetailsOn = "xanDurability: Show item breakdown info is [|cFF99CC33ON|r]"
 L.ShowMoreDetailsOff = "xanDurability: Show item breakdown info is [|cFF99CC33OFF|r]"
 
+L.SlashHideCombatInfo = "Hide the window while in combat."
+L.SlashHideCombatOn = "xanDurability: Hide in combat is [|cFF99CC33ON|r]"
+L.SlashHideCombatOff = "xanDurability: Hide in combat is [|cFF99CC33OFF|r]"
+
 L.RepairedFromGuild = "Repaired from Guild."
 L.NoGuildFunds = "Insufficient guild funds to make repairs."
 L.RepairedAll = "Repaired all items."

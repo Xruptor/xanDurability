@@ -31,6 +31,10 @@ L.ShowMoreDetails = "Reparaturkosten je Gegenstand und Platz anzeigen."
 L.ShowMoreDetailsOn = "xanDurability: Gegenstandsdetails sind [|cFF99CC33AN|r]"
 L.ShowMoreDetailsOff = "xanDurability: Gegenstandsdetails sind [|cFF99CC33AUS|r]"
 
+L.SlashHideCombatInfo = "Fenster im Kampf ausblenden."
+L.SlashHideCombatOn = "xanDurability: Im Kampf ausblenden ist [|cFF99CC33AN|r]"
+L.SlashHideCombatOff = "xanDurability: Im Kampf ausblenden ist [|cFF99CC33AUS|r]"
+
 L.RepairedFromGuild = "Mit Gildenmitteln repariert."
 L.NoGuildFunds = "Nicht genug Gildengelder für Reparaturen."
 L.RepairedAll = "Alle Gegenstände repariert."

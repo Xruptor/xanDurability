@@ -244,9 +244,17 @@ function configFrame:EnableConfig()
 	
 	local btnShowMoreDetails = createCheckbutton(addon.aboutPanel, L.ShowMoreDetails)
 	BindToggle(btnShowMoreDetails, XanDUR_Opt, "ShowMoreDetails", L.ShowMoreDetailsOn, L.ShowMoreDetailsOff)
-	
+
 	addConfigEntry(btnShowMoreDetails, 0, -20)
 	addon.aboutPanel.btnShowMoreDetails = btnShowMoreDetails
-	
+
+	local btnHideInCombat = createCheckbutton(addon.aboutPanel, L.SlashHideCombatInfo)
+	BindToggle(btnHideInCombat, XanDUR_Opt, "hideInCombat", L.SlashHideCombatOn, L.SlashHideCombatOff, function()
+		addon:UpdateCombatVisibility()
+	end)
+
+	addConfigEntry(btnHideInCombat, 0, -20)
+	addon.aboutPanel.btnHideInCombat = btnHideInCombat
+
 
 end

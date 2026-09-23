@@ -106,11 +106,13 @@ function addon:EnableAddon()
 	SetDefault(XanDUR_Opt, "autoRepair", true)
 	SetDefault(XanDUR_Opt, "autoRepairUseGuild", false)
 	SetDefault(XanDUR_Opt, "ShowMoreDetails", true)
+	SetDefault(XanDUR_Opt, "hideInCombat", false)
 
 	self:CreateDURFrame()
 	self:RestoreLayout(ADDON_NAME)
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
+	self:RegisterEvent("PLAYER_REGEN_DISABLED")
 	self:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
 	self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 	self:RegisterEvent("BAG_UPDATE_DELAYED")
@@ -149,6 +151,8 @@ function addon:EnableAddon()
 	self._durabilityDirty = true
 	self._repairDirty = true
 	self:RequestUpdate()
+
+	self:UpdateCombatVisibility()
 
 end
 
@@ -529,6 +533,14 @@ function addon:RestoreLayout(frame)
 	_G[frame]:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
 end
 
+function addon:UpdateCombatVisibility()
+	if XanDUR_Opt.hideInCombat and InCombatLockdown() then
+		addon:Hide()
+	else
+		addon:Show()
+	end
+end
+
 function addon:BackgroundToggle()
 	if XanDUR_DB.bgShown then
 		addon:SetBackdrop(BACKDROP_INFO)
@@ -568,7 +580,17 @@ function addon:MarkDirty()
 	self:RequestUpdate()
 end
 
-addon.PLAYER_REGEN_ENABLED = addon.MarkDirty
+function addon:PLAYER_REGEN_ENABLED()
+	self:MarkDirty()
+	--out of combat: show again if the hide-in-combat option is enabled
+	self:UpdateCombatVisibility()
+end
+
+function addon:PLAYER_REGEN_DISABLED()
+	--entering combat: hide if the hide-in-combat option is enabled
+	self:UpdateCombatVisibility()
+end
+
 addon.UPDATE_INVENTORY_DURABILITY = addon.MarkDirty
 addon.PLAYER_EQUIPMENT_CHANGED = addon.MarkDirty
 addon.BAG_UPDATE_DELAYED = addon.MarkDirty

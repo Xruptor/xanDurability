@@ -31,6 +31,10 @@ L.ShowMoreDetails = "Mostrar el desglose de costes de reparación por objeto y u
 L.ShowMoreDetailsOn = "xanDurability: El desglose de objetos está [|cFF99CC33ACTIVADO|r]"
 L.ShowMoreDetailsOff = "xanDurability: El desglose de objetos está [|cFF99CC33DESACTIVADO|r]"
 
+L.SlashHideCombatInfo = "Ocultar la ventana durante el combate."
+L.SlashHideCombatOn = "xanDurability: Ocultar en combate está [|cFF99CC33ACTIVADO|r]"
+L.SlashHideCombatOff = "xanDurability: Ocultar en combate está [|cFF99CC33DESACTIVADO|r]"
+
 L.RepairedFromGuild = "Reparado con fondos de hermandad."
 L.NoGuildFunds = "Fondos de hermandad insuficientes para reparar."
 L.RepairedAll = "Se repararon todos los objetos."

@@ -31,6 +31,10 @@ L.ShowMoreDetails = "Mostra il dettaglio dei costi di riparazione per oggetto e 
 L.ShowMoreDetailsOn = "xanDurability: Dettaglio oggetti [|cFF99CC33ATTIVO|r]"
 L.ShowMoreDetailsOff = "xanDurability: Dettaglio oggetti [|cFF99CC33DISATTIVO|r]"
 
+L.SlashHideCombatInfo = "Nascondi la finestra durante il combattimento."
+L.SlashHideCombatOn = "xanDurability: Nascondi in combattimento è [|cFF99CC33ATTIVO|r]"
+L.SlashHideCombatOff = "xanDurability: Nascondi in combattimento è [|cFF99CC33DISATTIVO|r]"
+
 L.RepairedFromGuild = "Riparato con fondi di gilda."
 L.NoGuildFunds = "Fondi di gilda insufficienti per riparare."
 L.RepairedAll = "Tutti gli oggetti sono stati riparati."

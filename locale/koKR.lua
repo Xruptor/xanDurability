@@ -31,6 +31,10 @@ L.ShowMoreDetails = "아이템과 위치별 수리 비용 내역을 표시합니
 L.ShowMoreDetailsOn = "xanDurability: 아이템 상세 정보가 [|cFF99CC33켜짐|r]"
 L.ShowMoreDetailsOff = "xanDurability: 아이템 상세 정보가 [|cFF99CC33꺼짐|r]"
 
+L.SlashHideCombatInfo = "전투 중 창을 숨깁니다."
+L.SlashHideCombatOn = "xanDurability: 전투 중 숨기기가 [|cFF99CC33켜짐|r]"
+L.SlashHideCombatOff = "xanDurability: 전투 중 숨기기가 [|cFF99CC33꺼짐|r]"
+
 L.RepairedFromGuild = "길드 자금으로 수리했습니다."
 L.NoGuildFunds = "길드 자금이 부족하여 수리할 수 없습니다."
 L.RepairedAll = "모든 아이템을 수리했습니다."

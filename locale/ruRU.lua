@@ -31,6 +31,10 @@ L.ShowMoreDetails = "Показывать разбивку стоимости р
 L.ShowMoreDetailsOn = "xanDurability: Разбивка по предметам [|cFF99CC33ВКЛ|r]"
 L.ShowMoreDetailsOff = "xanDurability: Разбивка по предметам [|cFF99CC33ВЫКЛ|r]"
 
+L.SlashHideCombatInfo = "Скрывать окно во время боя."
+L.SlashHideCombatOn = "xanDurability: Скрывать в бою [|cFF99CC33ВКЛ|r]"
+L.SlashHideCombatOff = "xanDurability: Скрывать в бою [|cFF99CC33ВЫКЛ|r]"
+
 L.RepairedFromGuild = "Отремонтировано за счёт гильдии."
 L.NoGuildFunds = "Недостаточно средств гильдии для ремонта."
 L.RepairedAll = "Все предметы отремонтированы."

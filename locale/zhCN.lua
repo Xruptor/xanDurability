@@ -31,6 +31,10 @@ L.ShowMoreDetails = "显示每件装备和位置的修理成本明细。"
 L.ShowMoreDetailsOn = "xanDurability: 显示装备详细信息 [|cFF99CC33开|r]"
 L.ShowMoreDetailsOff = "xanDurability: 显示装备详细信息 [|cFF99CC33关|r]"
 
+L.SlashHideCombatInfo = "战斗中隐藏窗口。"
+L.SlashHideCombatOn = "xanDurability: 战斗中隐藏 [|cFF99CC33开|r]"
+L.SlashHideCombatOff = "xanDurability: 战斗中隐藏 [|cFF99CC33关|r]"
+
 L.RepairedFromGuild = "用公会资金修理。"
 L.NoGuildFunds = "公会银行资金不足，无法进行修理。"
 L.RepairedAll = "已修理所有装备。"
