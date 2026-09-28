@@ -533,8 +533,15 @@ function addon:RestoreLayout(frame)
 	_G[frame]:SetPoint(opt.point, UIParent, opt.relativePoint, opt.xOfs, opt.yOfs)
 end
 
+function addon:IsPlayerInCombat()
+	--PLAYER_REGEN_DISABLED fires *before* InCombatLockdown() returns true, so we track the state ourselves
+	--from the regen events and only fall back to the API checks (login/reload while already in combat).
+	if self._inCombat ~= nil then return self._inCombat end
+	return InCombatLockdown() or UnitAffectingCombat("player") or false
+end
+
 function addon:UpdateCombatVisibility()
-	if XanDUR_Opt.hideInCombat and InCombatLockdown() then
+	if XanDUR_Opt.hideInCombat and self:IsPlayerInCombat() then
 		addon:Hide()
 	else
 		addon:Show()
@@ -581,12 +588,14 @@ function addon:MarkDirty()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
+	self._inCombat = false
 	self:MarkDirty()
 	--out of combat: show again if the hide-in-combat option is enabled
 	self:UpdateCombatVisibility()
 end
 
 function addon:PLAYER_REGEN_DISABLED()
+	self._inCombat = true
 	--entering combat: hide if the hide-in-combat option is enabled
 	self:UpdateCombatVisibility()
 end
