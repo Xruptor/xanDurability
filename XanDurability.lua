@@ -389,7 +389,12 @@ function addon:ScanRepairDetails(includeDetails)
 				local equipLoc = ""
 
 				if itemLink then
-					equipLoc = select(9, GetItemInfo(itemLink)) or ""
+					-- The legacy GetItemInfo global was removed on newer Retail clients.
+					-- Classic clients may still need the global API.
+					local getItemInfo = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+					if getItemInfo then
+						equipLoc = select(9, getItemInfo(itemLink)) or ""
+					end
 					equipLoc = (equipLoc ~= "" and _G[equipLoc]) or equipLoc
 					AddRow(equipLoc, itemLink, Minimum .. "/" .. Maximum, repairCost)
 				else
